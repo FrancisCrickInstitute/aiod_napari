@@ -148,6 +148,9 @@ class FinetuneNxfWidget(BaseNxfWidget):
         show_info("Pipeline started!")
         self.nxf_run_btn.setEnabled(False)
         self.nxf_run_btn.setText("Running Pipeline...")
+        self.parent.subwidgets["finetune_params"].model_save_name.setDisabled(
+            True
+        )
         self.init_finetune_pbar(self.max_epochs)
         self._add_cancel_btn(self.cancel_pipeline)
         training_metrics_path = (
@@ -166,6 +169,9 @@ class FinetuneNxfWidget(BaseNxfWidget):
         show_info("Pipeline failed! See terminal for details")
         print(exc)
         self._reset_btns()
+        self.parent.subwidgets["finetune_params"].model_save_name.setDisabled(
+            False
+        )
         self.parent.watch_enabled = False
 
     def cancel_pipeline(self):

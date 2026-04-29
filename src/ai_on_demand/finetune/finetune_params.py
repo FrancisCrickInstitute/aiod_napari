@@ -269,6 +269,7 @@ class FinetuneParameters(SubWidget):
             manifest_name,
             self.finetuning_meta_data,
             self.base_model,
+            cache_dir=f"{self.nxf_base_dir}/aiod_cache",
         )
 
         self.parent.refresh_instances(
@@ -277,4 +278,7 @@ class FinetuneParameters(SubWidget):
 
         show_info(
             "Fine-tuned model has been saved to registry and is ready to use"
+        )
+        self.parent.subwidgets["finetune_params"].model_save_name.setDisabled(
+            False
         )

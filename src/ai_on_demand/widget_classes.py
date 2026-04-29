@@ -147,8 +147,14 @@ class MainWidget(QWidget):
                 cls.instances[instance].get_manifests()
 
     def get_manifests(self):
-        # Re-retrieve manifests
-        self.all_manifests = load_manifests(filter_access=True)
+        # Re-retrieve manifests, including cache directory if available
+        cache_dir = None
+        nxf_widget = self.subwidgets.get("nxf")
+        if nxf_widget:
+            cache_dir = getattr(nxf_widget, "nxf_store_dir", None)
+        self.all_manifests = load_manifests(
+            filter_access=True, cache_dir=cache_dir
+        )
         self.subwidgets[
             "model"
         ].refresh_ui()  # can add further configuration of which subwidget to refresh
