@@ -155,9 +155,8 @@ class MainWidget(QWidget):
         self.all_manifests = load_manifests(
             filter_access=True, cache_dir=cache_dir
         )
-        self.subwidgets[
-            "model"
-        ].refresh_ui()  # can add further configuration of which subwidget to refresh
+        if "model" in self.subwidgets:
+            self.subwidgets["model"].refresh_ui()
 
     @abstractmethod
     def get_run_hash(self):

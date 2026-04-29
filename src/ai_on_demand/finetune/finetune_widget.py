@@ -1,7 +1,7 @@
 import time
 import os
 from pathlib import Path
-from typing import Union
+from typing import Optional
 
 import napari
 from napari.qt.threading import thread_worker
@@ -116,7 +116,9 @@ class Finetune(MainWidget):
         # Add model details
         hashed_params["task"] = nxf_params.get("task", self.selected_task)
         hashed_params["model"] = nxf_params.get("model", self.selected_model)
-        hashed_params["variant"] = nxf_params.get("model_type", self.selected_variant)
+        hashed_params["variant"] = nxf_params.get(
+            "model_type", self.selected_variant
+        )
         # Add the model dictionary (hashed)
         hashed_params["model_hash"] = self.subwidgets["model"].model_param_hash
         # and Nextflow parameters that affect the output
