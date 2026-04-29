@@ -392,13 +392,12 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             raise ValueError("Cannot run pipeline without data widget!")
         if len(self.parent.subwidgets["data"].image_path_dict) == 0:
             raise ValueError("No data selected!")
-        if self.all_loaded is False:
-            if not (
-                len(self.image_path_dict) > 0
-                and self.parent.subwidgets["data"].existing_loaded
-            ):
-                show_info("Not all images have loaded, please wait...")
-                return
+        if self.all_loaded is False and not (
+            len(self.image_path_dict) > 0
+            and self.parent.subwidgets["data"].existing_loaded
+        ):
+            show_info("Not all images have loaded, please wait...")
+            return
 
     def setup_pipeline(self):
         """Build the Nextflow command and params dict for inference."""
@@ -407,10 +406,8 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         self.parent.executed_model = self.parent.selected_model
         self.parent.executed_variant = self.parent.selected_variant
 
-        inference_config_fpath = str(Path(self.nxf_repo) / "inference.config")
         nxf_cmd = (
-            self.nxf_base_cmd
-            + f"run {self.nxf_repo} -latest -entry inference -c {inference_config_fpath}"
+            self.nxf_base_cmd + f"run {self.nxf_repo} -latest -entry inference"
         )
 
         parent = self.parent
