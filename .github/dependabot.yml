@@ -1,0 +1,17 @@
+# Checks for other AIoD deps
+
+version: 2
+
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+    groups:
+      aiod_packages:
+        group-by: dependency-name
+    allow:
+      - dependency-name: "aiod_registry"
+      - dependency-name: "aiod_utils"

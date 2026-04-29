@@ -63,6 +63,8 @@ class InferenceNxfWidget(BaseNxfWidget):
         self.all_loaded = False
         # Dictionary to monitor per-image progress
         self.progress_dict = {}
+        # Total number of substacks; set properly by setup_inference()
+        self.total_substacks = 0
 
         super().__init__(
             viewer=viewer,
@@ -305,6 +307,8 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         Writes the provided image paths to a CSV file to pass into Nextflow.
         """
         dims = []
+        dtypes = []
+        # Create container for knowing what images to track progress of
         self.progress_dict = {}
         total_substacks = 0
 
@@ -338,6 +342,8 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             layer = self.parent.viewer.layers[img_path.stem]
             H, W, num_slices, channels = get_img_dims(layer, img_path)
             dims.append({"Z": num_slices, "Y": H, "X": W, "C": channels})
+            dtypes.append(str(layer.metadata.get("dtype") or layer.data.dtype))
+            # Initialise the progress dict
             self.progress_dict[img_path.stem] = 0
 
             relevant_runs = [
@@ -374,12 +380,15 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
                 total_substacks += num_substacks
 
         image_paths_to_csv(
-            image_paths=img_paths,
-            output_csv_path=self.img_list_fpath,
-            dimensions=dims,
+            img_paths,
+            self.img_list_fpath,
+            dims,
+            dtypes,
             overwrite=True,
             index=False,
         )
+        # Store the total number of jobs
+        # NOTE: Used as an estimate to info the user of how many jobs will be submitted
         self.total_substacks = total_substacks
 
     def check_pipeline(self):
