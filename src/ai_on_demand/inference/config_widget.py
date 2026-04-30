@@ -65,6 +65,7 @@ Load and save all parameters of the plugin to a config file, to easily reproduce
             self.save_dir, _ = get_plugin_cache()
         self.save_dir_label = QLabel(f"Save directory:")
         self.save_dir_text = QLabel(str(self.save_dir))
+        self.save_dir_text.setWordWrap(True)
 
         self.load_config_button = QPushButton("Load Config")
         self.load_config_button.clicked.connect(self.on_load_config)
