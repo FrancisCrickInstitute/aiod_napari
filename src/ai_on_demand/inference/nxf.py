@@ -633,13 +633,17 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             return nxf_cmd, nxf_params  # FIXME: Returns diff number variables
         # Construct the Nextflow params if not given
         parent = self.parent
+        model_widget = parent.subwidgets["model"]
         # Get the model config path
-        config_path = parent.subwidgets["model"].get_model_config()
+        config_path = model_widget.get_model_config()
+        # Use the canonical slug for the variant to stay consistent with config file naming
+        task_model_version = (parent.executed_task, parent.executed_model, parent.executed_variant)
+        variant_slug = model_widget.version_slugs.get(task_model_version, sanitise_name(parent.executed_variant))
         # Construct the proper mask directory path
         self.mask_dir_path = (
             self.nxf_store_dir
             / f"{parent.executed_model}"
-            / f"{sanitise_name(parent.executed_variant)}_masks"
+            / f"{variant_slug}_masks"
         )
         # Construct the params to be given to Nextflow
         nxf_params = {}
@@ -647,7 +651,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         nxf_params["img_dir"] = str(self.img_list_fpath)
         nxf_params["model"] = parent.selected_model
         nxf_params["model_config"] = str(config_path)
-        nxf_params["model_type"] = sanitise_name(parent.executed_variant)
+        nxf_params["model_type"] = variant_slug
         nxf_params["task"] = parent.executed_task
         # Extract the tiles and overlap
         # Special text is ignored by default, so need to convert
