@@ -23,6 +23,7 @@ class ConfigWidget(SubWidget):
     def __init__(
         self,
         viewer: napari.Viewer,
+        variant: Optional[str] = None,
         parent: Optional[QWidget] = None,
         layout: QLayout = QGridLayout,
         **kwargs,
@@ -37,7 +38,7 @@ Load and save all parameters of the plugin to a config file, to easily reproduce
             **kwargs,
         )
 
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self):
         """
         Create the box for loading and saving configurations.
         """

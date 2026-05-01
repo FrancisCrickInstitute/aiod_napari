@@ -1,6 +1,6 @@
 from .data_selection import DataWidget
 from .mask_export import ExportWidget
-from .nxf import NxfWidget
+from .nxf import InferenceNxfWidget
 from .preprocess import PreprocessWidget
 from .tasks import TaskWidget
 from .model_selection import ModelWidget

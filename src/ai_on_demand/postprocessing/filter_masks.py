@@ -50,11 +50,11 @@ class FilterMasks(SubWidget):
         **kwargs,
     ):
         super().__init__(
-            viewer,
-            "Filter",
-            parent,
-            layout,
-            """
+            viewer=viewer,
+            title="Filter",
+            parent=parent,
+            layout=layout,
+            tooltip="""
 Filter masks using various methods. Each function works on the currently selected Labels layer only, and modifies in-place.
 """,
             **kwargs,
@@ -84,7 +84,7 @@ Filter masks using various methods. Each function works on the currently selecte
         # NOTE: The vars within the event do not seem what we want, so grab directly
         self.filter_label_entry.setValue(event._sources[0].selected_label)
 
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self):
         # TODO: Also connect this to delete shortcut for user speed
         self.filter_label_box = self._make_groupbox("Filter Label")
         layout = self.filter_label_box.layout()

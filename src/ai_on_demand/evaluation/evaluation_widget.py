@@ -68,7 +68,7 @@ class EvalWidget(SubWidget):
         self.viewer.layers.events.inserted.connect(self.add_layer)
         self.viewer.layers.events.removed.connect(self.remove_layer)
 
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self):
         # Mask layer selection
         self.mask_layer_label = QLabel("Mask layer:")
         # Get all labels layers that were already present when the widget was created

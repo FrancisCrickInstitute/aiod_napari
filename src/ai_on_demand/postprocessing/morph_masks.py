@@ -46,17 +46,17 @@ class MorphMasks(SubWidget):
         **kwargs,
     ):
         super().__init__(
-            viewer,
-            "Morph",
-            parent,
-            layout,
-            """
+            viewer=viewer,
+            title="Morph",
+            parent=parent,
+            layout=layout,
+            tooltip="""
 Morph masks using various methods. Each function works on the currently selected Labels layer only, and modifies in-place.
 """,
             **kwargs,
         )
 
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self):
         self.morph_ops_box = self._make_groupbox("Morphological Ops")
         layout = self.morph_ops_box.layout()
         self.morph_ops_lbl = QLabel("Operation to apply:")
@@ -157,14 +157,10 @@ Morph masks using various methods. Each function works on the currently selected
         self.label_box = self._make_groupbox("Label Masks")
         layout = self.label_box.layout()
         self.label_dilation = QCheckBox("Label across skipped slices?")
-        self.label_dilation.setToolTip(
-            format_tooltip(
-                """
+        self.label_dilation.setToolTip(format_tooltip("""
 If checked, a dilation in the z-axis will first be applied, allowing for objects that may disappear
 for a single frame/slice to still be labelled the same.
-            """
-            )
-        )
+            """))
         # TODO: Give some control over footprint/structure used
         self.label_btn = QPushButton("Label")
         self.label_btn.clicked.connect(self.label_masks)

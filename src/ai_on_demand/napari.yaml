@@ -1,6 +1,5 @@
 name: ai-on-demand
 display_name: AI OnDemand
-on_activate: ai_on_demand.load_manifests:activate_plugin
 contributions:
   commands:
     - id: ai-on-demand.inference
@@ -15,6 +14,10 @@ contributions:
       python_name: ai_on_demand.postprocessing:Postprocess
       title: Postprocess segmentations
       short_title: Postprocess
+    - id: ai-on-demand.finetune
+      python_name: ai_on_demand.finetune:Finetune
+      title: Finetune Models
+      short_title: Finetune
     - id: ai-on-demand.example_data
       title: Example FIB SEM data
       short_title: Example Data
@@ -35,6 +38,8 @@ contributions:
       display_name: Segmentation Evaluation
     - command: ai-on-demand.postprocess
       display_name: Postprocess
+    - command: ai-on-demand.finetune
+      display_name: Finetune Model
   sample_data:
     - command: ai-on-demand.example_data
       display_name: Example FIB SEM data
@@ -42,9 +47,9 @@ contributions:
   readers:
     - command: ai-on-demand.rle_reader
       filename_patterns:
-        - '*.pkl'
-        - '*.pickle'
-        - '*.rle'
+        - "*.pkl"
+        - "*.pickle"
+        - "*.rle"
       accepts_directories: false
     - command: ai-on-demand.bioio_reader
       filename_patterns:
@@ -55,6 +60,6 @@ contributions:
       layer_types:
         - labels
       filename_extensions:
-        - '*.pkl'
-        - '*.pickle'
-        - '*.rle'
+        - "*.pkl"
+        - "*.pickle"
+        - "*.rle"

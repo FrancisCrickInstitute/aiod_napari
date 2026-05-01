@@ -11,7 +11,7 @@ from ai_on_demand.inference import (
     DataWidget,
     ExportWidget,
     ModelWidget,
-    NxfWidget,
+    InferenceNxfWidget,
     PreprocessWidget,
     ConfigWidget,
 )
@@ -52,7 +52,12 @@ Run segmentation/inference on selected images using one of the available pre-tra
         # Create radio buttons for selecting the model to run
         # Functionality currently limited to Meta's Segment Anything Model
         self.register_widget(
-            ModelWidget(viewer=self.viewer, parent=self, expanded=False)
+            ModelWidget(
+                viewer=self.viewer,
+                parent=self,
+                variant="inference",
+                expanded=False,
+            )
         )
 
         # Create the box for selecting the directory, showing img count etc.
@@ -67,10 +72,9 @@ Run segmentation/inference on selected images using one of the available pre-tra
 
         # Add the button for running the Nextflow pipeline
         self.register_widget(
-            NxfWidget(
+            InferenceNxfWidget(
                 viewer=self.viewer,
                 parent=self,
-                pipeline="inference",
                 expanded=False,
             )
         )

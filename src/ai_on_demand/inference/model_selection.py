@@ -1,4 +1,5 @@
 import builtins
+from typing import Optional
 from pathlib import Path
 
 import napari
@@ -29,7 +30,7 @@ from ai_on_demand.utils import (
     merge_dicts,
     calc_param_hash,
     load_config_file,
-    InfoWindow
+    InfoWindow,
 )
 
 
@@ -39,14 +40,15 @@ class ModelWidget(SubWidget):
     def __init__(
         self,
         viewer: napari.Viewer,
-        parent: QWidget | None = None,
+        variant: Optional[str] = None,
+        parent: Optional[QWidget] = None,
         layout: QLayout = QVBoxLayout,
         **kwargs,
     ):
         # Set selection colour
         # Needs to be done before super call
         self.colour_selected = "#F7AD6F"
-
+        self.variant = variant
         super().__init__(
             viewer=viewer,
             title="Model Selection",
@@ -85,6 +87,12 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             for version_name, version in model_manifest.versions.items():
                 # Get the tasks for this version
                 for task_name, task in version.tasks.items():
+                    # filter out the models without finetuning available for the finetune widget
+                    if (
+                        getattr(task, "finetuning_meta_data", None) is None
+                        and self.variant == "finetune"
+                    ):
+                        continue
                     # Add this task if not yet seen
                     if task_name not in self.versions_per_task:
                         self.versions_per_task[task_name] = {}
@@ -100,7 +108,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
                         (task_name, base_name, version_name)
                     ] = task
 
-    def create_box(self, variant: str | None = None):
+    def create_box(self):
         # TODO: This will have to become a variant for e.g. fine-tuning
         model_box_layout = QGridLayout()
         # Create a label for the dropdown
@@ -182,7 +190,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         self.params_config_layout.setSpacing(5)
         self.params_config_widget.setLayout(self.params_config_layout)
         # Add the widgets to the overall container
-        self.inner_layout.addWidget(self.params_config_widget, 1, 0)
+
+        if self.variant == "inference":
+            self.inner_layout.addWidget(self.params_config_widget, 1, 0)
 
         # Create widgets for the two options
         self.create_model_param_widget()
@@ -226,6 +236,14 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         self.update_model_param_config(
             self.parent.selected_model, self.parent.selected_variant
         )
+        if self.variant == "finetune":
+            task = self.parent.selected_task
+            model = self.parent.selected_model
+            version = self.model_version_dropdown.currentText()
+            task_model_version = (task, model, version)
+            self.parent.subwidgets["finetune_params"].update_finetune_layers(
+                task_model_version
+            )
 
     def on_model_version_select(self):
         # Update tracker for selected model variant/version
@@ -236,6 +254,14 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         self.update_model_param_config(
             self.parent.selected_model, self.parent.selected_variant
         )
+        if self.variant == "finetune":
+            task = self.parent.selected_task
+            model = self.parent.selected_model
+            version = self.model_version_dropdown.currentText()
+            task_model_version = (task, model, version)
+            self.parent.subwidgets["finetune_params"].update_finetune_layers(
+                task_model_version
+            )
 
     def on_click_model_params(self):
         # Uncheck config button
@@ -280,7 +306,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         """
             )
         )
-        self.model_config_layout.addWidget(self.model_config_load_btn, 0, 0, 1, 2)
+        self.model_config_layout.addWidget(
+            self.model_config_load_btn, 0, 0, 1, 2
+        )
         # Add a label to display the selected config file (if any)
         self.model_config_label = QLabel("No model config file selected.")
         self.model_config_label.setWordWrap(True)
@@ -298,7 +326,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         self.model_param_widget = QWidget()
         self.model_param_layout = QVBoxLayout()
         # Add a button for resetting the config / UI params to defaults
-        self.model_config_clear_btn = QPushButton("Reset parameters to defaults")
+        self.model_config_clear_btn = QPushButton(
+            "Reset parameters to defaults"
+        )
         self.model_config_clear_btn.clicked.connect(self.reset_model_config)
         self.model_config_clear_btn.setToolTip(
             format_tooltip(
@@ -459,9 +489,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         self.model_param_layout.removeWidget(self.curr_model_param_widget)
         self.curr_model_param_widget.setParent(None)
 
-    def set_model_param_widget(
-        self, task_model_version: tuple | None = None
-    ):
+    def set_model_param_widget(self, task_model_version: tuple | None = None):
         if task_model_version is not None:
             self.curr_model_param_widget = self.model_param_widgets_dict[
                 task_model_version
@@ -504,7 +532,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             "Select a model config",
             str(self.config_dir),
             "Configs (*.yaml *.yml *.json)",
-        ) # type: ignore
+        )  # type: ignore
         # Reset if dialog cancelled
         if fname == "":
             return
@@ -536,7 +564,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
                 # Need to first load the project config
                 project_config = load_config_file(config_path)
                 # Then get the path to the model config contained therein
-                model_config_path = Path(project_config["model"]["model_config"])
+                model_config_path = Path(
+                    project_config["model"]["model_config"]
+                )
                 # Now try to load *that* config and populate the UI widgets
                 config = load_config_file(model_config_path)
                 self.fill_ui_from_config(config)
@@ -544,7 +574,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
                     f"Config '{model_config_path.name}' loaded into UI parameters."
                 )
             except KeyError as e:
-                show_error(f"Failed to load config '{config_path.name}': assumed input was a project config but no {e} key found!")
+                show_error(
+                    f"Failed to load config '{config_path.name}': assumed input was a project config but no {e} key found!"
+                )
                 self.model_config_label.setText("No model config file loaded.")
                 return
         except UserWarning as e:
@@ -744,7 +776,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             task_model_version = self.get_task_model_variant(executed=False)
         if not all(task_model_version):
             raise ValueError("Cannot read UI: no model/task/version selected.")
-        gui_dict = self.create_config_params(task_model_version=task_model_version)
+        gui_dict = self.create_config_params(
+            task_model_version=task_model_version
+        )
         return merge_dicts(config, gui_dict)
 
     def get_task_model_variant(
@@ -846,5 +880,31 @@ Version: {task_model_version[2]}
         if model_version.config_path is not None:
             model_info += f"\nConfig path: {model_version.config_path}"
 
-        self.model_window = InfoWindow(self, title="Model Information", content=model_info)
+        self.model_window = InfoWindow(
+            self, title="Model Information", content=model_info
+        )
         self.model_window.show()
+
+    def refresh_ui(self):
+        print("refreshing widget")
+        self.extract_model_info()
+        self.update_model_box(self.parent.selected_task)
+
+
+class ModelInfoWindow(QDialog):
+    def __init__(self, parent=None, model_info: str = ""):
+        super().__init__(parent)
+
+        # Set the layout
+        self.layout = QVBoxLayout()
+        # Set the window title
+        self.setWindowTitle("Model Information")
+        # Add the info label
+        self.info_label = QTextEdit()
+        # Make the text selectable, but not editable
+        self.info_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.info_label.setText(model_info)
+        self.info_label.setMinimumSize(500, 500)
+
+        self.layout.addWidget(self.info_label)
+        self.setLayout(self.layout)

@@ -48,7 +48,7 @@ class ExportWidget(SubWidget):
             self.on_select_change
         )
 
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self):
         self.export_masks_btn = QPushButton("Export all masks")
         self.export_masks_btn.clicked.connect(self.on_click_export)
         self.export_masks_btn.setToolTip(
