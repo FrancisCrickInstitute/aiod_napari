@@ -74,6 +74,8 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         self.versions_per_task = {}
         # Dict of model params for each model version, specific to each task
         self.model_version_tasks = {}
+        # Slug for each (task, model, version) key
+        self.version_slugs = {}
 
         # Extract the model info from all manifests
         for model_manifest in self.parent.all_manifests.values():
@@ -99,6 +101,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
                     self.model_version_tasks[
                         (task_name, base_name, version_name)
                     ] = task
+                    self.version_slugs[
+                        (task_name, base_name, version_name)
+                    ] = version.slug
 
     def create_box(self, variant: str | None = None):
         # TODO: This will have to become a variant for e.g. fine-tuning
@@ -598,8 +603,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         task_model_version = self.get_task_model_variant(executed=True)
         model_version = self.model_version_tasks[task_model_version]
 
-        if model_version.config_path is not None:
-            base_dict = load_config_file(Path(model_version.config_path))
+        config_path = model_version.locations[0].config_path
+        if config_path is not None:
+            base_dict = load_config_file(Path(config_path))
             if model_version.params is not None:
                 model_dict = self.fill_config_from_ui(
                     base_dict, task_model_version=task_model_version
@@ -766,7 +772,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
 
     def get_task_model_variant_name(self, executed: bool = True) -> str:
         task, model, version = self.get_task_model_variant(executed)
-        return f"{task}-{model}-{sanitise_name(version)}"
+        task_model_version = (task, model, version)
+        slug = self.version_slugs.get(task_model_version, sanitise_name(version))
+        return f"{task}-{model}-{slug}"
 
     def load_config(self, config):
         model_name = config["name"]
@@ -787,7 +795,10 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         version_index = -1
         for i in range(self.model_version_dropdown.count()):
             item_text = self.model_version_dropdown.itemText(i)
-            if sanitise_name(item_text) == sanitise_name(model_version):
+            # Match by slug or exact name to handle saved configs using either form
+            task_mv = (self.parent.selected_task, model_name, item_text)
+            item_slug = self.version_slugs.get(task_mv, sanitise_name(item_text))
+            if item_slug == model_version or item_text == model_version:
                 version_index = i
                 break
         if version_index == -1:
@@ -843,8 +854,9 @@ Version: {task_model_version[2]}
             model_info += "\n"
 
         # Add the config path if it exists
-        if model_version.config_path is not None:
-            model_info += f"\nConfig path: {model_version.config_path}"
+        config_path = model_version.locations[0].config_path
+        if config_path is not None:
+            model_info += f"\nConfig path: {config_path}"
 
         self.model_window = InfoWindow(self, title="Model Information", content=model_info)
         self.model_window.show()
