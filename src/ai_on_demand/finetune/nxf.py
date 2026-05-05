@@ -121,23 +121,16 @@ class FinetuneNxfWidget(BaseNxfWidget):
             "finetune_params"
         ].epochs.value()
         self.max_epochs = nxf_params["epochs"]
-        nxf_params["finetune_layers"] = parent.subwidgets[
-            "finetune_params"
-        ].finetune_layers.currentText()
         nxf_params["model_save_name"] = parent.subwidgets[
             "finetune_params"
         ].model_save_name.text()
-        nxf_params["learning_rate"] = float(
-            parent.subwidgets["finetune_params"].learning_rate.text()
-        )
-        nxf_params["weight_decay"] = float(
-            parent.subwidgets["finetune_params"].weight_decay.text()
-        )
-        nxf_params["sdg"] = bool(
-            parent.subwidgets["finetune_params"].use_sgd.isChecked()
-        )
-        nxf_params["momentum"] = float(
-            parent.subwidgets["finetune_params"].momentum.text()
+        # Build a YAML config from the dynamic per-model finetune param widgets
+        # and pass its path to Nextflow. Mirrors the inference model_config flow.
+        finetune_config_path = parent.subwidgets[
+            "finetune_params"
+        ].get_finetune_config()
+        nxf_params["finetune_config"] = (
+            str(finetune_config_path) if finetune_config_path else ""
         )
 
         parent.get_run_hash(nxf_params)

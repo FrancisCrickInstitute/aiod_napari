@@ -241,9 +241,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             model = self.parent.selected_model
             version = self.model_version_dropdown.currentText()
             task_model_version = (task, model, version)
-            self.parent.subwidgets["finetune_params"].update_finetune_layers(
-                task_model_version
-            )
+            self.parent.subwidgets[
+                "finetune_params"
+            ].update_finetune_params_ui(task_model_version)
 
     def on_model_version_select(self):
         # Update tracker for selected model variant/version
@@ -259,9 +259,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             model = self.parent.selected_model
             version = self.model_version_dropdown.currentText()
             task_model_version = (task, model, version)
-            self.parent.subwidgets["finetune_params"].update_finetune_layers(
-                task_model_version
-            )
+            self.parent.subwidgets[
+                "finetune_params"
+            ].update_finetune_params_ui(task_model_version)
 
     def on_click_model_params(self):
         # Uncheck config button

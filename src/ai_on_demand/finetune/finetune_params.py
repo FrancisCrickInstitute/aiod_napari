@@ -1,4 +1,6 @@
+import builtins
 import napari
+import yaml
 from typing import Optional
 from pathlib import Path
 
@@ -8,6 +10,7 @@ from napari._qt.qt_resources import QColoredSVGIcon
 from qtpy.QtWidgets import (
     QWidget,
     QGridLayout,
+    QVBoxLayout,
     QLayout,
     QLabel,
     QLineEdit,
@@ -19,7 +22,7 @@ from qtpy.QtWidgets import (
     QCheckBox,
 )
 from ai_on_demand.widget_classes import SubWidget, QGroupBox
-from ai_on_demand.utils import format_tooltip
+from ai_on_demand.utils import format_tooltip, calc_param_hash, sanitise_name
 
 
 class FinetuneParameters(SubWidget):
@@ -41,6 +44,13 @@ class FinetuneParameters(SubWidget):
 
         self.finetuning_meta_data = None
         self.base_model = None
+        # Track the param widgets so we can read them back when building the
+        # finetune YAML config. Keyed by `arg_name`.
+        self.finetune_param_widgets: dict = {}
+        # The list[ModelParam] in use for the currently-selected model so we
+        # can look up the dtype / arg_name when serialising values.
+        self._current_param_list: Optional[list] = None
+        self.finetune_param_hash: Optional[str] = None
 
     def create_box(self):
         self.finetune_box = QGroupBox("Finetune Model")
@@ -50,8 +60,6 @@ class FinetuneParameters(SubWidget):
 
         self.train_dir = QLineEdit(placeholderText="Train directory")
         self.test_dir = QLineEdit(placeholderText="Test directory (optional)")
-
-        self.finetune_layers = QComboBox()
 
         self.epochs = QSpinBox()
         self.epochs.setRange(0, 1000)
@@ -115,53 +123,8 @@ class FinetuneParameters(SubWidget):
         self.finetune_layout.addWidget(self.test_dir_btn, 3, 0, 1, 2)
         self.finetune_layout.addWidget(self.test_dir_info, 3, 2)
 
-        self.finetune_layout.addWidget(QLabel("Finetune layers: "), 5, 0)
-        self.finetune_layout.addWidget(self.finetune_layers, 5, 1, 1, 2)
-
         self.finetune_layout.addWidget(QLabel("Epochs: "), 6, 0)
         self.finetune_layout.addWidget(self.epochs, 6, 1, 1, 2)
-
-        # Training hyperparameters
-        self.learning_rate_label = QLabel("Learning rate:")
-        self.learning_rate_label.setToolTip(
-            format_tooltip("Learning rate for finetuning optimizer")
-        )
-        self.learning_rate = QLineEdit(placeholderText="e.g., 0.001")
-        self.learning_rate.setText("0.001")
-        self.finetune_layout.addWidget(self.learning_rate_label, 8, 0)
-        self.finetune_layout.addWidget(self.learning_rate, 8, 1, 1, 2)
-
-        self.weight_decay_label = QLabel("Weight decay:")
-        self.weight_decay_label.setToolTip(
-            format_tooltip("Weight decay for regularization")
-        )
-        self.weight_decay = QLineEdit(placeholderText="e.g., 0.0001")
-        self.weight_decay.setText("0.0001")
-        self.finetune_layout.addWidget(self.weight_decay_label, 9, 0)
-        self.finetune_layout.addWidget(self.weight_decay, 9, 1, 1, 2)
-
-        self.use_sgd_label = QLabel("Use SGD optimizer:")
-        self.use_sgd_label.setToolTip(
-            format_tooltip(
-                "Use SGD optimizer instead of default Adam optimizer"
-            )
-        )
-        self.use_sgd = QCheckBox()
-        self.use_sgd.setChecked(False)
-        self.finetune_layout.addWidget(self.use_sgd_label, 10, 0)
-        self.finetune_layout.addWidget(self.use_sgd, 10, 1)
-
-        self.momentum_label = QLabel("Momentum (SGD only):")
-        self.momentum_label.setToolTip(
-            format_tooltip("Momentum parameter for SGD optimizer")
-        )
-        self.momentum = QLineEdit(placeholderText="e.g., 0.9")
-        self.momentum.setText("0.9")
-        self.finetune_layout.addWidget(self.momentum_label, 11, 0)
-        self.finetune_layout.addWidget(self.momentum, 11, 1, 1, 2)
-
-        self.finetune_layout.addWidget(QLabel("Finetuned model name: "), 12, 0)
-        self.finetune_layout.addWidget(self.model_save_name, 12, 1, 1, 2)
 
         self.manifest_name = QLineEdit(placeholderText="e.g. empanada")
         self.add_model_btn = QPushButton("Add Model To Registry")
@@ -174,9 +137,211 @@ class FinetuneParameters(SubWidget):
         # name task location, manifestname
         self.add_model_btn.clicked.connect(self.add_model_to_registry)
 
-        self.finetune_layout.addWidget(self.add_model_btn, 13, 0, 1, 3)
+        self.create_finetune_params_widget()
+
+        self.finetune_layout.addWidget(QLabel("Finetuned model name: "), 13, 0)
+        self.finetune_layout.addWidget(self.model_save_name, 13, 1, 1, 2)
+
+        self.finetune_layout.addWidget(self.add_model_btn, 14, 0, 1, 3)
 
         self.inner_layout.addWidget(self.finetune_box)
+
+    def create_finetune_params_widget(self):
+        """
+        Create a container that holds the dynamic, model-specific finetune
+        parameter widgets. Initially populated with a placeholder; the contents
+        are swapped in when a model is selected via `update_finetune_param_widget`.
+        """
+        # Container + layout that we can clear and refill on model change
+        self.finetune_param_container = QWidget()
+        self.finetune_param_container_layout = QVBoxLayout()
+        self.finetune_param_container_layout.setContentsMargins(0, 0, 0, 0)
+        self.finetune_param_container.setLayout(
+            self.finetune_param_container_layout
+        )
+
+        # Placeholder shown until a finetunable model is selected
+        self.finetune_param_placeholder = QLabel("No model selected")
+        self.finetune_param_container_layout.addWidget(
+            self.finetune_param_placeholder
+        )
+
+        # Track the currently mounted dynamic widget (if any) so we can replace it
+        self._current_finetune_param_widget = None
+        self.finetune_param_widgets = {}
+
+        # Place the container below the rest of the static finetune controls
+        self.finetune_layout.addWidget(
+            self.finetune_param_container, 12, 0, 1, 3
+        )
+
+    def update_finetune_param_widget(self, param_list: Optional[list]):
+        """
+        Rebuild the dynamic finetune parameter widget for the given list of
+        ``ModelParam`` (typically the selected model's ``finetuning_meta_data``).
+        """
+        # Tear down whatever is currently in the container
+        if self._current_finetune_param_widget is not None:
+            self.finetune_param_container_layout.removeWidget(
+                self._current_finetune_param_widget
+            )
+            self._current_finetune_param_widget.setParent(None)
+            self._current_finetune_param_widget = None
+        if self.finetune_param_placeholder is not None:
+            self.finetune_param_container_layout.removeWidget(
+                self.finetune_param_placeholder
+            )
+            self.finetune_param_placeholder.setParent(None)
+            self.finetune_param_placeholder = None
+
+        if param_list:
+            new_widget = self._create_finetune_param_widget(param_list)
+            self._current_param_list = param_list
+        else:
+            # No finetuning metadata for this model — show placeholder again
+            new_widget = QLabel("No finetune parameters for this model")
+            self.finetune_param_widgets = {}
+            self._current_param_list = None
+
+        self._current_finetune_param_widget = new_widget
+        self.finetune_param_container_layout.addWidget(new_widget)
+
+    def _create_finetune_param_widget(self, param_list: list):
+        """
+        Dynamically build the params UI input for fine-tuning a model from a
+        list of ``ModelParam`` objects. Mirrors ``_create_model_params_widget``
+        in the inference ``ModelWidget`` so the two flows behave consistently.
+
+        Widget type is chosen by ``ModelParam.value``:
+          * ``bool``                  -> ``QCheckBox``
+          * ``list``                  -> ``QComboBox`` (uses ``default`` if set)
+          * ``int``/``float``/``str``/``None`` -> ``QLineEdit``
+        """
+        finetune_param_widget = QWidget()
+        finetune_param_layout = QGridLayout()
+        self.finetune_param_widgets = {}
+
+        for i, model_param in enumerate(param_list):
+            param_label = QLabel(f"{model_param.name}:")
+            if model_param.tooltip:
+                param_label.setToolTip(format_tooltip(model_param.tooltip))
+            finetune_param_layout.addWidget(param_label, i, 0)
+
+            param_value = model_param.value
+            if param_value is True or param_value is False:
+                param_val_widget = QCheckBox()
+                param_val_widget.setChecked(bool(param_value))
+            elif isinstance(param_value, list):
+                param_val_widget = QComboBox()
+                param_val_widget.addItems([str(v) for v in param_value])
+                if model_param.default is not None:
+                    idx = param_value.index(model_param.default)
+                    param_val_widget.setCurrentIndex(idx)
+            elif (
+                isinstance(param_value, (int, float, str))
+                or param_value is None
+            ):
+                param_val_widget = QLineEdit()
+                param_val_widget.setText(
+                    str(param_value) if param_value is not None else "None"
+                )
+            else:
+                raise ValueError(
+                    f"Finetune parameter {model_param.name!r} has unsupported "
+                    f"type {type(param_value)}"
+                )
+
+            if model_param.tooltip:
+                param_val_widget.setToolTip(format_tooltip(model_param.tooltip))
+            finetune_param_layout.addWidget(param_val_widget, i, 1)
+            # Index by `arg_name` to match the YAML config keys consumed by the
+            # downstream finetune scripts.
+            self.finetune_param_widgets[model_param.arg_name] = {
+                "label": param_label,
+                "value": param_val_widget,
+                "param": model_param,
+            }
+
+        finetune_param_layout.setContentsMargins(0, 0, 0, 0)
+        finetune_param_widget.setLayout(finetune_param_layout)
+        return finetune_param_widget
+
+    def _read_param_value(self, model_param, widget):
+        """Read the current value from a finetune param widget, casting back to
+        the schema-declared dtype."""
+        if isinstance(widget, QCheckBox):
+            return bool(widget.isChecked())
+        if isinstance(widget, QComboBox):
+            raw = widget.currentText()
+        elif isinstance(widget, QLineEdit):
+            raw = widget.text()
+        else:
+            raise NotImplementedError(
+                f"Unhandled finetune widget type {type(widget)} for "
+                f"{model_param.name!r}"
+            )
+
+        # If schema default was None we need to honour an empty/"None" entry
+        if model_param.value is None:
+            if raw == "" or raw == "None":
+                return None
+            cast = getattr(builtins, model_param.dtype, None)
+            return cast(raw) if cast is not None else raw
+
+        # For lists, cast back to the dtype of the (default) element
+        if isinstance(model_param.value, list):
+            return model_param.dtype(raw)
+
+        return model_param.dtype(raw)
+
+    def get_finetune_config_dict(self) -> dict:
+        """Return the current finetune parameter values as a plain dict keyed
+        by ``arg_name``. Returns an empty dict if the selected model has no
+        finetune parameters."""
+        if not self._current_param_list:
+            return {}
+        result = {}
+        for model_param in self._current_param_list:
+            entry = self.finetune_param_widgets.get(model_param.arg_name)
+            if entry is None:
+                continue
+            result[model_param.arg_name] = self._read_param_value(
+                model_param, entry["value"]
+            )
+        return result
+
+    def get_finetune_config(self) -> Optional[Path]:
+        """Serialise the finetune parameters to a YAML config file alongside
+        the model config (under ``<nxf_base_dir>/configs``) and return the
+        path. Returns ``None`` if there are no parameters to save (in which
+        case no config file is needed)."""
+        config_dict = self.get_finetune_config_dict()
+        # Track for run-hash reproducibility
+        self.finetune_param_hash = (
+            calc_param_hash(config_dict) if config_dict else None
+        )
+        if not config_dict:
+            return None
+
+        config_dir = self.parent.subwidgets["nxf"].nxf_base_dir / "configs"
+        config_dir.mkdir(parents=True, exist_ok=True)
+
+        task = self.parent.selected_task
+        model = self.parent.selected_model
+        version = sanitise_name(self.parent.selected_variant or "")
+        fname = (
+            f"{task}-{model}-{version}_finetune_config_"
+            f"{self.finetune_param_hash}.yaml"
+        )
+        fpath = config_dir / fname
+        with open(fpath, "w") as f:
+            yaml.safe_dump(
+                config_dict,
+                f,
+                sort_keys=False,
+                default_flow_style=False,
+            )
+        return fpath
 
     def on_click_train_dir(self):
         """
@@ -236,15 +401,15 @@ class FinetuneParameters(SubWidget):
             ),
         )
 
-    def update_finetune_layers(self, task_model_verson):
-        self.finetune_layers.clear()
+    def update_finetune_params_ui(self, task_model_verson):
         version_data = self.parent.subwidgets["model"].model_version_tasks[
             task_model_verson
         ]
-        # save for later use when saving the model
-        self.finetuning_meta_data = dict(version_data.finetuning_meta_data)
-        avail_layers = self.finetuning_meta_data["avail_layers"]
-        self.finetune_layers.addItems(avail_layers)
+        # Save the schema (list[ModelParam]) for later use when registering the
+        # finetuned model in the local manifest.
+        self.finetuning_meta_data = version_data.finetuning_meta_data
+        # Rebuild the dynamic finetune param widget from the model's metadata
+        self.update_finetune_param_widget(self.finetuning_meta_data)
         # Store the base model version for registry
         self.base_model = task_model_verson[2]
 
@@ -262,12 +427,29 @@ class FinetuneParameters(SubWidget):
         # TODO: maybe better to save it directly to checkpoints dir that way it won't have to copy the file when the user tries to run the model
         manifest_name = self.parent.selected_model
 
+        # Persist the finetune parameter schema (list[ModelParam]) so the
+        # local manifest exactly matches the global registry's schema.
+        if self.finetuning_meta_data is None:
+            finetune_meta_serialised = None
+        else:
+            finetune_meta_serialised = []
+            for p in self.finetuning_meta_data:
+                dumped = p.model_dump(exclude_none=True)
+                # `extract_arg_type` overwrites `dtype` with the actual Python
+                # type object (e.g. `float`), but the field is declared as a
+                # str. Coerce back to the type's name so the local manifest
+                # round-trips through JSON cleanly.
+                dtype = dumped.get("dtype")
+                if isinstance(dtype, type):
+                    dumped["dtype"] = dtype.__name__
+                finetune_meta_serialised.append(dumped)
+
         add_model_local(
             model_name,
             model_task,
             model_save_fpath,
             manifest_name,
-            self.finetuning_meta_data,
+            finetune_meta_serialised,
             self.base_model,
             cache_dir=f"{self.nxf_base_dir}/aiod_cache",
         )
