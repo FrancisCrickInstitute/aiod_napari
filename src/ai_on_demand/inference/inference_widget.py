@@ -17,6 +17,7 @@ from ai_on_demand.inference import (
 )
 from ai_on_demand.widget_classes import MainWidget
 from ai_on_demand.utils import calc_param_hash
+import tifffile
 import aiod_utils.preprocess
 from aiod_utils.io import extract_idxs_from_fname
 import aiod_utils.rle as aiod_rle
@@ -150,6 +151,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 self.subwidgets["nxf"].mask_dir_path
                 / self._get_mask_name(
                     img_dict["img_path"].stem,
+                    extension=self._get_output_format(),
                     executed=True,
                     truncate=False,
                     preprocess_str=preprocess_str,
@@ -186,14 +188,14 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 "nxf"
             ].mask_dir_path / self._get_mask_name(
                 img_dict["img_path"].stem,
+                extension=self._get_output_format(),
                 executed=True,
                 truncate=False,
                 preprocess_str=preprocess_str,
             )
             # If it does, load it
             if mask_fpath.exists():
-                mask_data = aiod_rle.load_encoding(mask_fpath)
-                mask_data, metadata = aiod_rle.decode(mask_data)
+                mask_data, metadata = self._load_mask_file(mask_fpath)
                 # Check if the mask layer already exists
                 if layer_name in self.viewer.layers:
                     # If so, update the data just to make sure & ensure visible
@@ -435,6 +437,29 @@ Run segmentation/inference on selected images using one of the available pre-tra
             fname += f".{extension}"
         return fname
 
+    def _get_output_format(self) -> str:
+        """Return the currently selected output format ('rle' or 'tiff')."""
+        return self.subwidgets["nxf"].output_format_box.currentText()
+
+    def _load_mask_file(self, fpath: Path):
+        """Load a mask file, handling both .rle and .tiff formats.
+
+        Returns (arr, metadata_dict).
+        """
+        if fpath.suffix == ".tiff":
+            with tifffile.TiffFile(fpath) as tif:
+                arr = tif.asarray()
+                # imagej_metadata holds the dict written by tifffile.imwrite(..., imagej=True)
+                # e.g. {"downsample_factor": 2}. Wrap it to match the rle metadata structure.
+                imagej_meta = tif.imagej_metadata or {}
+                # Strip tifffile bookkeeping keys that aren't part of our saved metadata
+                imagej_meta = {k: v for k, v in imagej_meta.items() if k not in ("axes",)}
+            return arr, {"metadata": imagej_meta}
+        else:
+            encoding = aiod_rle.load_encoding(fpath)
+            arr, metadata = aiod_rle.decode(encoding)
+            return arr, metadata
+
     def _get_mask_name(
         self,
         stem: str,
@@ -558,13 +583,12 @@ Run segmentation/inference on selected images using one of the available pre-tra
             # Load the mask
             fpath = self.subwidgets["nxf"].mask_dir_path / self._get_mask_name(
                 img_dict["img_path"].stem,
+                extension=self._get_output_format(),
                 executed=True,
                 truncate=False,
                 preprocess_str=preprocess_str,
             )
-            mask_arr = aiod_rle.load_encoding(fpath)
-            # NOTE: Mask metadata should be no different, so ignore
-            mask_arr, _ = aiod_rle.decode(mask_arr)
+            mask_arr, _ = self._load_mask_file(fpath)
             # Insert mask data
             self.viewer.layers[mask_layer_name].data = mask_arr
             self.viewer.layers[mask_layer_name].visible = True
