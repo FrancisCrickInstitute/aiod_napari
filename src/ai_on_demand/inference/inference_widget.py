@@ -495,15 +495,27 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     img_name = d["img_path"].stem
                     break
             label_layer = self.viewer.layers[mask_layer_name]
+            # On first mask for this layer, check if shape matches model output and recreate if not
+            if not label_layer.visible and label_layer.ndim != mask_arr.ndim:
+                correct_shape = tuple(s for s in label_layer.data.shape if s > 1)
+                layer_idx = self.viewer.layers.index(label_layer)
+                layer_meta = label_layer.metadata
+                self.viewer.layers.remove(label_layer)
+                label_layer = self.viewer.add_labels(
+                    np.zeros(correct_shape, dtype=np.uint16),
+                    name=mask_layer_name,
+                    visible=False,
+                    opacity=0.5,
+                    metadata=layer_meta,
+                )
+                self.viewer.layers.move(
+                    self.viewer.layers.index(mask_layer_name), layer_idx
+                )
             # Insert mask data
-            # Check if dims match
             if label_layer.ndim != mask_arr.ndim:
+                # Fallback: shouldn't happen after recreation, but guard anyway
                 mask_arr = np.squeeze(mask_arr)
-                assert (
-                    label_layer.ndim == mask_arr.ndim
-                ), f"Mask appears to be {mask_arr.ndim}D (after squeezing), but layer is {label_layer.ndim}D"
-                label_layer.data = mask_arr
-            else:
+            if label_layer.ndim == mask_arr.ndim:
                 # TODO: Handle multi-channel images
                 # TODO: Check DHW orientation? Does Napari enforce this?
                 if label_layer.ndim == 3:
@@ -566,8 +578,9 @@ Run segmentation/inference on selected images using one of the available pre-tra
             # NOTE: Mask metadata should be no different, so ignore
             mask_arr, _ = aiod_rle.decode(mask_arr)
             # Insert mask data
-            self.viewer.layers[mask_layer_name].data = mask_arr
-            self.viewer.layers[mask_layer_name].visible = True
+            label_layer = self.viewer.layers[mask_layer_name]
+            label_layer.data = mask_arr
+            label_layer.visible = True
         # Now we'll sort all the layers, grouping together the image and mask layers for each image
         # Get the image layer names
         image_layers = sorted(
