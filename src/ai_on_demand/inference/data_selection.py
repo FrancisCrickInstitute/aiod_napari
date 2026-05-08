@@ -316,11 +316,15 @@ Images can also be opened, or dragged into napari as normal. The selection will 
 
     def get_config_params(self, params):
         img_dir = params.get("img_dir")
-        if img_dir is not None:
+        if img_dir is None:
+            return {"img_paths": []}
+        try:
             df = pd.read_csv(img_dir)
             img_paths = df["img_path"].drop_duplicates().tolist()
-        else:
-            img_paths = []
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to read image list from config (img_dir={img_dir})"
+            ) from e
         return {"img_paths": img_paths}
 
     def load_config(self, config):
