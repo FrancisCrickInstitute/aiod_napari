@@ -189,8 +189,6 @@ Images can also be opened, or dragged into napari as normal. The selection will 
         """
         Loads the selected images into napari for viewing (in separate threads).
         """
-        # Ensure Nextflow subwidget knows not all images are loaded until this func returns
-        self.parent.subwidgets["nxf"].all_loaded = False
         # Return if there's nothing to show
         if len(self.image_path_dict) == 0:
             return
@@ -218,6 +216,8 @@ Images can also be opened, or dragged into napari as normal. The selection will 
             return
         if len(imgs_to_load) == 0:
             return
+        # Ensure Nextflow subwidget knows not all images are loaded until loading completes
+        self.parent.subwidgets["nxf"].all_loaded = False
         # Reset counter
         self.load_img_counter = 0
 
@@ -315,12 +315,20 @@ Images can also be opened, or dragged into napari as normal. The selection will 
             self.viewer.layers.remove(layer)
 
     def get_config_params(self, params):
-        widget_config = {"img_dir": params.get("img_dir")}
-        return widget_config
+        img_dir = params.get("img_dir")
+        if img_dir is None:
+            return {"img_paths": []}
+        try:
+            df = pd.read_csv(img_dir)
+            img_paths = df["img_path"].drop_duplicates().tolist()
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to read image list from config (img_dir={img_dir})"
+            ) from e
+        return {"img_paths": img_paths}
 
     def load_config(self, config):
-        df = pd.read_csv(config["img_dir"])
-        img_paths = df["img_path"].tolist()
+        img_paths = config["img_paths"]
         self.update_file_count(paths=img_paths)
         self.view_images(imgs_to_load=img_paths)
 
