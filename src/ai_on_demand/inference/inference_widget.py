@@ -190,6 +190,8 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 truncate=False,
                 preprocess_str=preprocess_str,
             )
+            # Grab corresponding image layer to get info as needed
+            img_layer = self.viewer.layers[f"{fpath.stem}"]
             # If it does, load it
             if mask_fpath.exists():
                 mask_data = aiod_rle.load_encoding(mask_fpath)
@@ -212,7 +214,6 @@ Run segmentation/inference on selected images using one of the available pre-tra
             else:
                 # If the associated image is present, use its shape
                 # Get ndim of the layer (this accounts for RGB)
-                img_layer = self.viewer.layers[f"{fpath.stem}"]
                 ndim = img_layer.ndim
                 metadata = img_layer.metadata
                 # Channels (non-RGB) & Z
@@ -269,6 +270,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     visible=False,
                     opacity=0.5,
                     metadata=metadata,
+                    scale=img_layer.scale,
                 )
             # Now move the new layer to be just above the image layer, ensuring they group together
             self.viewer.layers.move(
