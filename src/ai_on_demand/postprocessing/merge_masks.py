@@ -335,7 +335,8 @@ Merge masks using various methods. Note that all buttons will use whatever Label
             name="Mask Overlaps",
             colormap=cmap,
             features=features,
-            blending="opaque",  # Avoids blending issues
+            blending="translucent",
+            opacity=1.0,
         )
 
     def show_visualize_legend(self):
