@@ -1,33 +1,32 @@
 from functools import partial
 from typing import Optional
 
-import napari
-from napari.utils.notifications import show_error, show_info, show_warning
-import numpy as np
-from qtpy.QtWidgets import (
-    QWidget,
-    QLayout,
-    QVBoxLayout,
-    QCheckBox,
-    QComboBox,
-    QGridLayout,
-    QGroupBox,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QPlainTextEdit,
-    QDialog,
-)
-import qtpy.QtCore
-
-from ai_on_demand.widget_classes import SubWidget
-from ai_on_demand.utils import format_tooltip
-
 import aiod_utils
+import napari
+import numpy as np
+import qtpy.QtCore
 from aiod_utils.preprocess import (
     get_all_preprocess_methods,
     get_params_str,
 )
+from napari.utils.notifications import show_error, show_info, show_warning
+from qtpy.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QGridLayout,
+    QGroupBox,
+    QLabel,
+    QLayout,
+    QLineEdit,
+    QPlainTextEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
+
+from ai_on_demand.utils import format_tooltip
+from ai_on_demand.widget_classes import SubWidget
 
 
 class PreprocessWidget(SubWidget):
