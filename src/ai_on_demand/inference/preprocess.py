@@ -171,12 +171,20 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
         self.save_set_btn = QPushButton("Save preprocessing set")
         self.save_set_btn.clicked.connect(self.on_click_preprocess_save)
         self.btn_layout.addWidget(self.save_set_btn, 1, 0, 1, 1)
+        self.no_preprocess_btn = QPushButton("Add 'No preprocessing'")
+        self.no_preprocess_btn.clicked.connect(self.on_click_no_preprocess)
+        self.no_preprocess_btn.setToolTip(
+            format_tooltip(
+                "Add a 'No preprocessing' set to the saved sets, allowing the pipeline to run once with the raw image alongside any other saved preprocessing sets."
+            )
+        )
+        self.btn_layout.addWidget(self.no_preprocess_btn, 1, 1, 1, 1)
         self.view_sets_btn = QPushButton("View saved sets (0)")
         self.view_sets_btn.clicked.connect(self.on_click_preprocess_view)
-        self.btn_layout.addWidget(self.view_sets_btn, 1, 1, 1, 1)
+        self.btn_layout.addWidget(self.view_sets_btn, 2, 0, 1, 1)
         self.clear_sets_btn = QPushButton("Clear saved sets")
         self.clear_sets_btn.clicked.connect(self.on_click_preprocess_clear)
-        self.btn_layout.addWidget(self.clear_sets_btn, 1, 2, 1, 1)
+        self.btn_layout.addWidget(self.clear_sets_btn, 2, 1, 1, 1)
         # Set the layout for the widget
         self.btn_widget.setLayout(self.btn_layout)
         self.inner_layout.addWidget(self.btn_widget)
@@ -341,6 +349,10 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
 
     def get_all_options(self):
         if len(self.preprocess_sets) > 0:
+            # If every set is empty (no-op), treat as no preprocessing so the
+            # pipeline skips preprocessImage entirely.
+            if all(not s for s in self.preprocess_sets):
+                return None
             res = self.preprocess_sets
             extras = self.extract_options()
             if extras is not None:
@@ -363,12 +375,20 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
         img_layers = [
             i for i in self.viewer.layers if isinstance(i, napari.layers.Image)
         ]
-        # Check each param set against each image layer
+        # Check each param set against each image layer;
+        # empty sets (no preprocessing) short-circuit inside run_preprocess.
         for layer in img_layers:
             for d in prep_params:
                 aiod_utils.preprocess.run_preprocess(
                     img=layer.data, methods=d, only_check=True
                 )
+
+    def on_click_no_preprocess(self):
+        """Save a 'No preprocessing' sentinel (empty list) as a preprocessing set."""
+        self.preprocess_sets.append([])
+        self._reset_preprocess()
+        self._update_viewsets_btn()
+        show_info("Added a 'No preprocessing' set!")
 
     def on_click_preprocess_save(self):
         current_options = self.extract_options()
@@ -417,10 +437,13 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
         else:
             for i, pp_set in enumerate(self.preprocess_sets):
                 display_text += f"Set {i+1}:\n"
-                for pp in pp_set:
-                    display_text += f"  {pp['name']}:\n"
-                    for param, value in pp["params"].items():
-                        display_text += f"    {param}: {value}\n"
+                if not pp_set:
+                    display_text += "  No preprocessing\n"
+                else:
+                    for pp in pp_set:
+                        display_text += f"  {pp['name']}:\n"
+                        for param, value in pp["params"].items():
+                            display_text += f"    {param}: {value}\n"
                 display_text += "\n"
         # Create a dialog to display the text
         self.preprocess_set_popout = PreprocessSetWindow(
