@@ -143,7 +143,7 @@ Any preprocessing applied here is for visualization purposes only, only the orig
         self.btn_widget = QWidget()
         self.btn_layout = QGridLayout()
         # Add preview button
-        self.preview_btn = QPushButton("Preview")
+        self.preview_btn = QPushButton("Preview Slice")
         self.preview_btn.clicked.connect(
             partial(self.on_click_run, preview=True)
         )
@@ -154,7 +154,7 @@ Any preprocessing applied here is for visualization purposes only, only the orig
         )
         self.btn_layout.addWidget(self.preview_btn, 0, 0, 1, 1)
         # Add a run button to apply the preprocessing entirely
-        self.prep_run_btn = QPushButton("Run")
+        self.prep_run_btn = QPushButton("Preview Stack")
         self.prep_run_btn.clicked.connect(
             partial(self.on_click_run, preview=False)
         )
@@ -234,6 +234,19 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
                 "No image layers available! Please load an image layer to preview the preprocessing effect on.",
             )
             return
+        if not preview:
+            confirm = ConfirmDialog(
+                parent=self,
+                title="Preview Stack",
+                text="This will load the entire selected image stack into memory and apply preprocessing.",
+                informative_text=(
+                    "For large images, this may consume significant memory or "
+                    "cause the application to become unresponsive.\n\n"
+                    "Are you sure you want to continue?"
+                ),
+            )
+            if not confirm.exec():
+                return
         # Extract the options from the UI elements
         options = self.extract_options()
         # Get the selected image
@@ -463,6 +476,43 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
             self.preprocess_sets = []
         self._update_viewsets_btn()
         self._reset_preprocess()
+
+
+class ConfirmDialog(QDialog):
+    def __init__(
+        self,
+        parent=None,
+        title: str = "",
+        text: str = "",
+        informative_text: str = "",
+    ):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+
+        layout = QVBoxLayout()
+
+        text_label = QLabel(text)
+        text_label.setWordWrap(True)
+        layout.addWidget(text_label)
+
+        if informative_text:
+            info_label = QLabel(informative_text)
+            info_label.setWordWrap(True)
+            layout.addWidget(info_label)
+
+        btn_widget = QWidget()
+        btn_layout = QGridLayout()
+        no_btn = QPushButton("No")
+        no_btn.clicked.connect(self.reject)
+        no_btn.setDefault(True)
+        yes_btn = QPushButton("Yes")
+        yes_btn.clicked.connect(self.accept)
+        btn_layout.addWidget(no_btn, 0, 0)
+        btn_layout.addWidget(yes_btn, 0, 1)
+        btn_widget.setLayout(btn_layout)
+        layout.addWidget(btn_widget)
+
+        self.setLayout(layout)
 
 
 class PreprocessSetWindow(QDialog):
