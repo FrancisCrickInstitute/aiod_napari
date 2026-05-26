@@ -133,10 +133,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
         self.get_img_mask_preps()
         # Loop over each image-mask-preprocess combo and check if the mask exists
         for img_dict in self.img_mask_info:
-            # Extract the save string from the preprocessing options
-            preprocess_str = aiod_utils.preprocess.get_params_str(
-                img_dict["prep_set"], to_save=True
-            )
+            preprocess_str = img_dict["preprocess_str"]
             mask_layer_name = self._get_mask_layer_name(
                 img_dict["img_path"].stem,
                 executed=True,
@@ -173,13 +170,11 @@ Run segmentation/inference on selected images using one of the available pre-tra
         self.get_img_mask_preps(img_paths)
         # Now loop over every image-mask-preprocess combo
         for img_dict in self.img_mask_info:
-            fpath, layer_name, prep_options = (
+            fpath, layer_name, prep_options, preprocess_str = (
                 img_dict["img_path"],
                 img_dict["layer_name"],
                 img_dict["prep_set"],
-            )
-            preprocess_str = aiod_utils.preprocess.get_params_str(
-                prep_options, to_save=True
+                img_dict["preprocess_str"],
             )
             # Check if the mask file already exists
             mask_fpath = self.subwidgets[
@@ -289,6 +284,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
         # And just use the normal layer names
         if options is None:
             prep_options = [None] * len(img_paths)
+            preprocess_strs = [None] * len(img_paths)
             all_img_paths = img_paths
             all_layer_names = [
                 self._get_mask_layer_name(Path(i).stem, executed=True)
@@ -297,16 +293,21 @@ Run segmentation/inference on selected images using one of the available pre-tra
         else:
             # Containers for all the paths, layer names, and preprocessing options
             prep_options = []
+            preprocess_strs = []
             all_img_paths = []
             all_layer_names = []
             # Now modify the layer names to include the preprocessing options
             for i, img_path in enumerate(img_paths):
                 for prep_set in options:
                     all_img_paths.append(img_path)
-                    # Get the preprocess param string to add to the layer name
-                    suffix = aiod_utils.preprocess.get_params_str(
-                        prep_set, to_save=True
-                    )
+                    # For no-op sets, use no suffix so the layer name matches the mask
+                    # Nextflow creates from the original image filename
+                    if not prep_set:
+                        suffix = None
+                    else:
+                        suffix = aiod_utils.preprocess.get_params_str(
+                            prep_set, to_save=True
+                        )
                     layer_name = self._get_mask_layer_name(
                         Path(img_paths[i]).stem,
                         executed=True,
@@ -314,18 +315,20 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     )
                     all_layer_names.append(layer_name)
                     prep_options.append(prep_set)
-        self.mask_prefixes = set(
-            [i.split("_masks_")[0] for i in all_layer_names]
-        )
+                    preprocess_strs.append(suffix)
+        self.mask_prefixes = {
+            i.split("_masks_")[0] for i in all_layer_names
+        }
         # Insert all info into structure for later use
-        for fpath, layer_name, prep_options in zip(
-            all_img_paths, all_layer_names, prep_options
+        for fpath, layer_name, prep_set, preprocess_str in zip(
+            all_img_paths, all_layer_names, prep_options, preprocess_strs, strict=True
         ):
             self.img_mask_info.append(
                 {
                     "img_path": fpath,
                     "layer_name": layer_name,
-                    "prep_set": prep_options,
+                    "prep_set": prep_set,
+                    "preprocess_str": preprocess_str,
                 }
             )
 
@@ -555,10 +558,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
         """
         # Loop over each image and insert the final mask
         for img_dict in self.img_mask_info:
-            # Extract the save string from the preprocessing options
-            preprocess_str = aiod_utils.preprocess.get_params_str(
-                img_dict["prep_set"], to_save=True
-            )
+            preprocess_str = img_dict["preprocess_str"]
             # Get the mask layer name, considering any preprocessing
             mask_layer_name = self._get_mask_layer_name(
                 img_dict["img_path"].stem,
