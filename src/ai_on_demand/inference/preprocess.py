@@ -374,7 +374,7 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
             extras = self.extract_options()
             if extras is not None:
                 show_warning(
-                    f"Additional preprocessing options found but not saved as new set while using sets; they will be ignored."
+                    "You've selected preprocessing options but not saved them while using sets; they will be ignored."
                 )
         else:
             # Need to extract options and wrap into a list to align with sets above
