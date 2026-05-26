@@ -530,6 +530,10 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 else:
                     label_layer.data[start_y:end_y, start_x:end_x] = mask_arr
             label_layer.visible = True
+            # Apply scale for downsampled masks
+            downsample_factor = label_layer.metadata.get("downsample_factor", None)
+            if downsample_factor is not None:
+                label_layer.scale = downsample_factor
             # Try to rearrange the layers to get them on top
             idxs = []
             # Have to check due to possible delay in loading
@@ -583,6 +587,10 @@ Run segmentation/inference on selected images using one of the available pre-tra
             label_layer = self.viewer.layers[mask_layer_name]
             label_layer.data = mask_arr
             label_layer.visible = True
+            # Apply scale for downsampled masks
+            downsample_factor = label_layer.metadata.get("downsample_factor", None)
+            if downsample_factor is not None:
+                label_layer.scale = downsample_factor
         # Now we'll sort all the layers, grouping together the image and mask layers for each image
         # Get the image layer names
         image_layers = sorted(
