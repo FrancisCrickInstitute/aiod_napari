@@ -314,7 +314,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
                         preprocess_str=suffix,
                     )
                     all_layer_names.append(layer_name)
-                    prep_options.append(prep_set)
+                    prep_options.append(None if not prep_set else prep_set)
                     preprocess_strs.append(suffix)
         self.mask_prefixes = {
             i.split("_masks_")[0] for i in all_layer_names
