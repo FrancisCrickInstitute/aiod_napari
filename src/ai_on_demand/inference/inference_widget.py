@@ -1,3 +1,4 @@
+import copy
 from pathlib import Path
 import time
 from typing import Optional, Union
@@ -187,10 +188,17 @@ Run segmentation/inference on selected images using one of the available pre-tra
             )
             # Grab corresponding image layer to get info as needed
             img_layer = self.viewer.layers[f"{fpath.stem}"]
+            img_metadata = copy.deepcopy(img_layer.metadata) if img_layer.metadata is not None else {}
             # If it does, load it
             if mask_fpath.exists():
                 mask_data = aiod_rle.load_encoding(mask_fpath)
                 mask_data, metadata = aiod_rle.decode(mask_data)
+                metadata = metadata["metadata"]
+                metadata["img_scale"] = img_layer.scale
+                # Check the filename if there's downsampling to ensure correct scaling
+                downsample_factor = aiod_utils.preprocess.get_downsample_factor(methods=None, filename=mask_fpath.stem)
+                if downsample_factor is not None:
+                    metadata["downsample_factor"] = downsample_factor
                 # Check if the mask layer already exists
                 if layer_name in self.viewer.layers:
                     # If so, update the data just to make sure & ensure visible
@@ -204,13 +212,13 @@ Run segmentation/inference on selected images using one of the available pre-tra
                         name=layer_name,
                         visible=True,
                         opacity=0.5,
-                        metadata=metadata["metadata"],
+                        metadata=metadata,
+                        scale=img_layer.scale * metadata.get("downsample_factor", 1.0)
                     )
             else:
                 # If the associated image is present, use its shape
                 # Get ndim of the layer (this accounts for RGB)
                 ndim = img_layer.ndim
-                metadata = img_layer.metadata
                 # Channels (non-RGB) & Z
                 # TODO: Switch to using utils.get_img_dims
                 if ndim == 4:
@@ -218,8 +226,8 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     img_shape = img_layer.data.shape[1:]
                 elif ndim == 3:
                     # If we have a Z, no problem
-                    if ("bioio_dims" in metadata) and (
-                        metadata["bioio_dims"].Z > 1
+                    if ("bioio_dims" in img_metadata) and (
+                        img_metadata["bioio_dims"].Z > 1
                     ):
                         img_shape = self.viewer.layers[
                             f"{fpath.stem}"
@@ -245,26 +253,26 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     ]
                 if prep_options is not None:
                     # Check if downsampling
-                    metadata = {}
                     downsample_factor = (
                         aiod_utils.preprocess.get_downsample_factor(
                             prep_options
                         )
                     )
                     if downsample_factor is not None:
-                        metadata["downsample_factor"] = downsample_factor
+                        img_metadata["downsample_factor"] = downsample_factor
                     mask_shape = aiod_utils.preprocess.get_output_shape(
                         options=prep_options, input_shape=img_shape
                     )
                 else:
                     mask_shape = img_shape
+                img_metadata["img_scale"] = img_layer.scale
                 # Add a Labels layer for this file
                 self.viewer.add_labels(
                     np.zeros(mask_shape, dtype=np.uint16),
                     name=layer_name,
                     visible=False,
                     opacity=0.5,
-                    metadata=metadata,
+                    metadata=img_metadata,
                     scale=img_layer.scale,
                 )
             # Now move the new layer to be just above the image layer, ensuring they group together
@@ -314,7 +322,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
                         preprocess_str=suffix,
                     )
                     all_layer_names.append(layer_name)
-                    prep_options.append(None if not prep_set else prep_set)
+                    prep_options.append(prep_set if prep_set else None)
                     preprocess_strs.append(suffix)
         self.mask_prefixes = {
             i.split("_masks_")[0] for i in all_layer_names
@@ -530,10 +538,10 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 else:
                     label_layer.data[start_y:end_y, start_x:end_x] = mask_arr
             label_layer.visible = True
-            # Apply scale for downsampled masks
+            # Apply scale for downsampled masks, accounting for pixel size scaling if present
             downsample_factor = label_layer.metadata.get("downsample_factor", None)
             if downsample_factor is not None:
-                label_layer.scale = [s * downsample_factor for s in label_layer.scale]
+                label_layer.scale = label_layer.metadata["img_scale"] * downsample_factor
             # Try to rearrange the layers to get them on top
             idxs = []
             # Have to check due to possible delay in loading
@@ -587,10 +595,10 @@ Run segmentation/inference on selected images using one of the available pre-tra
             label_layer = self.viewer.layers[mask_layer_name]
             label_layer.data = mask_arr
             label_layer.visible = True
-            # Apply scale for downsampled masks
+            # Apply scale for downsampled masks, accounting for pixel size scaling if present
             downsample_factor = label_layer.metadata.get("downsample_factor", None)
             if downsample_factor is not None:
-                label_layer.scale = downsample_factor
+                label_layer.scale = label_layer.metadata["img_scale"] * downsample_factor
         # Now we'll sort all the layers, grouping together the image and mask layers for each image
         # Get the image layer names
         image_layers = sorted(
