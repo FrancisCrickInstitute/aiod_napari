@@ -533,7 +533,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
             # Apply scale for downsampled masks
             downsample_factor = label_layer.metadata.get("downsample_factor", None)
             if downsample_factor is not None:
-                label_layer.scale = downsample_factor
+                label_layer.scale = [s * downsample_factor for s in label_layer.scale]
             # Try to rearrange the layers to get them on top
             idxs = []
             # Have to check due to possible delay in loading
