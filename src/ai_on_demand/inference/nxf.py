@@ -1127,6 +1127,8 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             selected = selected[0]
             # Look for hash crumb pattern in layer name
             crumb = re.split(r"[\W_]", selected.name)[-1]
+            if not crumb:
+                return ""
             file_matches = list(
                 self.nxf_store_dir.glob(f"nxf_params_{crumb}*.yml")
             )
