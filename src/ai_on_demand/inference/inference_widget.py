@@ -262,7 +262,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
                         )
                     )
                     if downsample_factor is not None:
-                        metadata["downsample_factor"] = downsample_factor
+                        img_metadata["downsample_factor"] = downsample_factor
                     mask_shape = stack_to_shape(
                         aiod_utils.preprocess.get_output_shape(
                             options=prep_options, input_shape=img_shape
