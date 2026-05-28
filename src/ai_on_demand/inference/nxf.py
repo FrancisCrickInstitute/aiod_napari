@@ -570,14 +570,9 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
                     )
                 else:
                     output_shape = aiod_utils.preprocess.get_output_shape(
-                        d["prep_set"], input_shape=(num_slices, H, W)
+                        d["prep_set"], input_shape=Stack(height=H, width=W, depth=num_slices)
                     )
-                    final_shape = Stack(
-                        height=output_shape[1],
-                        width=output_shape[2],
-                        depth=output_shape[0],
-                        channels=channels,
-                    )
+                    final_shape = output_shape._replace(channels=channels)
                 # Calculate the number of substacks
                 num_substacks, eff_shape = calc_num_stacks(
                     image_shape=final_shape,

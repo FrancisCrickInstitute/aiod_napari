@@ -268,12 +268,8 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
                                 f"Changed Filter footprint to {option['params']['footprint']} from {footprint} for 2D preview."
                             )
                     elif option["name"] == "Downsample":
-                        blocksize = option["params"]["block_size"]
-                        if len(blocksize) == 3:
-                            option["params"]["block_size"] = blocksize[1:]
-                            show_info(
-                                f"Changed Downsample blocksize to {option['params']['block_size']} from {blocksize} for 2D preview."
-                            )
+                        # block_size is always (D, H, W); Downsample.run handles 2D images
+                        pass
             else:
                 image = data
         else:
@@ -313,7 +309,7 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
         for layer in mask_layers:
             blocksize = layer.metadata.get("downsample_factor", None)
             if blocksize is not None:
-                layer.scale = blocksize
+                layer.scale = blocksize[-layer.ndim:]
 
     def extract_options(self):
         # Shortcut for when no postprocessing has been done
