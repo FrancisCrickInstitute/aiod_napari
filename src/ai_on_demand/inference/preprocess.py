@@ -306,7 +306,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
         # Switch focus back to the original layer
         self.viewer.layers.selection.active = layer
 
-    def extract_options(self):
+    def extract_options(self) -> None | list[dict]:
         # Shortcut for when no postprocessing has been done
         if self.order_list is None:
             return
@@ -392,7 +392,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
 
     def on_click_preprocess_save(self):
         current_options = self.extract_options()
-        if len(current_options) == 0:
+        if current_options is None or len(current_options) == 0:
             show_error(
                 "No preprocessing methods selected! Please select at least one preprocessing method to save a set.",
             )
