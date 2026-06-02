@@ -25,7 +25,7 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from ai_on_demand.utils import format_tooltip
+from ai_on_demand.utils import ConfirmDialog, format_tooltip
 from ai_on_demand.widget_classes import SubWidget
 
 
@@ -436,7 +436,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
             display_text = "No saved preprocessing sets!"
         else:
             for i, pp_set in enumerate(self.preprocess_sets):
-                display_text += f"Set {i+1}:\n"
+                display_text += f"Set {i + 1}:\n"
                 if not pp_set:
                     display_text += "  No preprocessing\n"
                 else:
@@ -469,43 +469,6 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
             self.preprocess_sets = []
         self._update_viewsets_btn()
         self._reset_preprocess()
-
-
-class ConfirmDialog(QDialog):
-    def __init__(
-        self,
-        parent=None,
-        title: str = "",
-        text: str = "",
-        informative_text: str = "",
-    ):
-        super().__init__(parent)
-        self.setWindowTitle(title)
-
-        layout = QVBoxLayout()
-
-        text_label = QLabel(text)
-        text_label.setWordWrap(True)
-        layout.addWidget(text_label)
-
-        if informative_text:
-            info_label = QLabel(informative_text)
-            info_label.setWordWrap(True)
-            layout.addWidget(info_label)
-
-        btn_widget = QWidget()
-        btn_layout = QGridLayout()
-        no_btn = QPushButton("No")
-        no_btn.clicked.connect(self.reject)
-        no_btn.setDefault(True)
-        yes_btn = QPushButton("Yes")
-        yes_btn.clicked.connect(self.accept)
-        btn_layout.addWidget(no_btn, 0, 0)
-        btn_layout.addWidget(yes_btn, 0, 1)
-        btn_widget.setLayout(btn_layout)
-        layout.addWidget(btn_widget)
-
-        self.setLayout(layout)
 
 
 class PreprocessSetWindow(QDialog):
