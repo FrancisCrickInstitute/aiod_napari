@@ -144,7 +144,7 @@ Any preprocessing applied here is for visualization purposes only, only the orig
         # Add preview button
         self.preview_btn = QPushButton("Preview Slice")
         self.preview_btn.clicked.connect(
-            partial(self.on_click_run, preview=True)
+            partial(self.on_click_run, run_on_slice=True)
         )
         self.preview_btn.setToolTip(
             format_tooltip(
@@ -155,7 +155,7 @@ Any preprocessing applied here is for visualization purposes only, only the orig
         # Add a run button to apply the preprocessing entirely
         self.prep_run_btn = QPushButton("Preview Stack")
         self.prep_run_btn.clicked.connect(
-            partial(self.on_click_run, preview=False)
+            partial(self.on_click_run, run_on_slice=False)
         )
         self.prep_run_btn.setToolTip(
             format_tooltip(
@@ -216,7 +216,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
         # Return the callback
         return cb
 
-    def on_click_run(self, preview: bool = False):
+    def on_click_run(self, run_on_slice: bool = False):
         # Callback for when the preview button is clicked
         # First check if we are able to preview
         if self.preprocess_order.text() == self.init_order:
@@ -229,7 +229,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
                 "No image layers available! Please load an image layer to preview the preprocessing effect on.",
             )
             return
-        if not preview:
+        if not run_on_slice:
             confirm = ConfirmDialog(
                 parent=self,
                 title="Preview Stack",
@@ -260,7 +260,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
         data = layer.data
         if data.ndim == 3:
             # Get the current slice
-            if preview:
+            if run_on_slice:
                 image = data[self.viewer.dims.current_step[0]]
                 # As the preview is for 2D only, remap 3D-specific options to 2D if needed
                 for option in options:
