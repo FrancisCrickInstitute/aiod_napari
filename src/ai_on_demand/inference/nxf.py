@@ -873,6 +873,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         if hasattr(self.parent, "watcher_enabled"):
             print("Deactivating watcher...")
             self.parent.watcher_enabled = False
+        self.parent.remove_mask_layers()
         self.pipeline_failed.emit()
 
     def _remove_cancel_btn(self):
