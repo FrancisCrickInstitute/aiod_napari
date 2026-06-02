@@ -47,7 +47,7 @@ class PreprocessWidget(SubWidget):
         self.preprocess_order = None
         self.init_order = "None selected!"
         # Store the order as a list for easier manipulation
-        self.order_list = None
+        self.order_list: None | list[str] = None
         # Container for multiple sets of preprocessing options
         self.preprocess_sets = []
 
