@@ -39,7 +39,7 @@ dependencies = [
     "glasbey",
     "dask-image",
     "aiod_utils @ git+https://github.com/FrancisCrickInstitute/aiod_utils.git",
-    "aiod_registry @ git+https://github.com/FrancisCrickInstitute/AIoD-Model-Registry.git",
+    "aiod_registry @ git+https://github.com/FrancisCrickInstitute/AIoD-Model-Registry.git@717d863121e0656349d4d45d4d3a18d2a36da05f",
 ]
 
 [project.optional-dependencies]
