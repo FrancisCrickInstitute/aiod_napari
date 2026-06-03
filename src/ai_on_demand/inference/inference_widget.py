@@ -341,16 +341,11 @@ Run segmentation/inference on selected images using one of the available pre-tra
             )
 
     def remove_mask_layers(self, img_paths=None):
-        if img_paths is None:
-            img_paths = self.subwidgets["data"].image_path_dict.values()
-        # Construct the mask layer names
-        layer_names = [
-            self._get_mask_layer_name(Path(i).stem, executed=True)
-            for i in img_paths
-        ]
-        # Create the Labels layers for each image
-        for layer_name in layer_names:
-            # Check if the mask layer already exists
+        # Collate all image-mask-preprocess combos (handles preprocessing variants)
+        self.get_img_mask_preps(img_paths)
+        # Remove each mask layer if it exists
+        for img_dict in self.img_mask_info:
+            layer_name = img_dict["layer_name"]
             if layer_name in self.viewer.layers:
                 self.viewer.layers.remove(self.viewer.layers[layer_name])
 
