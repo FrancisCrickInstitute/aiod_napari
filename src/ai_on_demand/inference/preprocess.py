@@ -8,6 +8,8 @@ import qtpy.QtCore
 from aiod_utils.preprocess import (
     get_all_preprocess_methods,
     get_params_str,
+    get_downsample_factor,
+    run_preprocess,
 )
 from napari.utils.notifications import show_error, show_info, show_warning
 from qtpy.QtWidgets import (
@@ -25,7 +27,7 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from ai_on_demand.utils import format_tooltip
+from ai_on_demand.utils import ConfirmDialog, format_tooltip
 from ai_on_demand.widget_classes import SubWidget
 
 
@@ -144,7 +146,7 @@ Any preprocessing applied here is for visualization purposes only, only the orig
         # Add preview button
         self.preview_btn = QPushButton("Preview Slice")
         self.preview_btn.clicked.connect(
-            partial(self.on_click_run, preview=True)
+            partial(self.on_click_run, run_on_slice=True)
         )
         self.preview_btn.setToolTip(
             format_tooltip(
@@ -155,7 +157,7 @@ Any preprocessing applied here is for visualization purposes only, only the orig
         # Add a run button to apply the preprocessing entirely
         self.prep_run_btn = QPushButton("Preview Stack")
         self.prep_run_btn.clicked.connect(
-            partial(self.on_click_run, preview=False)
+            partial(self.on_click_run, run_on_slice=False)
         )
         self.prep_run_btn.setToolTip(
             format_tooltip(
@@ -216,7 +218,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
         # Return the callback
         return cb
 
-    def on_click_run(self, preview: bool = False):
+    def on_click_run(self, run_on_slice: bool = False):
         # Callback for when the preview button is clicked
         # First check if we are able to preview
         if self.preprocess_order.text() == self.init_order:
@@ -229,7 +231,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
                 "No image layers available! Please load an image layer to preview the preprocessing effect on.",
             )
             return
-        if not preview:
+        if not run_on_slice:
             confirm = ConfirmDialog(
                 parent=self,
                 title="Preview Stack",
@@ -260,7 +262,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
         data = layer.data
         if data.ndim == 3:
             # Get the current slice
-            if preview:
+            if run_on_slice:
                 image = data[self.viewer.dims.current_step[0]]
                 # As the preview is for 2D only, remap 3D-specific options to 2D if needed
                 for option in options:
@@ -289,10 +291,10 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
             image = data
         # Extract blocksize for rescaling if downsampling used
         # This will be the corrected blocksize based on preview/run and input data shape
-        blocksize = aiod_utils.preprocess.get_downsample_factor(options)
+        blocksize = get_downsample_factor(options)
         # Apply the preprocessing and show the result
         # Convert to numpy array in case it's dask
-        image = aiod_utils.run_preprocess(np.array(image), options)
+        image = run_preprocess(np.array(image), options)
         prep_str = get_params_str(options)
         # Add metadata to skip file path checks in plugin
         self.viewer.add_image(
@@ -379,7 +381,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
         # empty sets (no preprocessing) short-circuit inside run_preprocess.
         for layer in img_layers:
             for d in prep_params:
-                aiod_utils.preprocess.run_preprocess(
+                run_preprocess(
                     img=layer.data, methods=d, only_check=True
                 )
 
@@ -436,7 +438,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
             display_text = "No saved preprocessing sets!"
         else:
             for i, pp_set in enumerate(self.preprocess_sets):
-                display_text += f"Set {i+1}:\n"
+                display_text += f"Set {i + 1}:\n"
                 if not pp_set:
                     display_text += "  No preprocessing\n"
                 else:

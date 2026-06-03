@@ -20,9 +20,21 @@ from qtpy.QtWidgets import (
 from qtpy.QtGui import QIcon
 import pandas as pd
 import scipy.ndimage as ndi
+from skimage.transform import resize
 
 from ai_on_demand.widget_classes import SubWidget
 from ai_on_demand.utils import format_tooltip
+
+
+def _resize_to_match(arrays: list[np.ndarray]) -> list[np.ndarray]:
+    """Resize arrays to the largest spatial dimensions in the list (nearest-neighbor)."""
+    target_shape = tuple(np.max([a.shape for a in arrays], axis=0))
+    return [
+        resize(a, target_shape, order=0, preserve_range=True, anti_aliasing=False).astype(a.dtype)
+        if a.shape != target_shape
+        else a
+        for a in arrays
+    ]
 
 
 class MergeMasks(SubWidget):
@@ -170,9 +182,10 @@ Merge masks using various methods. Note that all buttons will use whatever Label
             return
         # Get the union of the masks
         # NOTE: Technically special case of mask_vote, but logical_or should be faster so maybe worth separating
-        union = self.parent._binarize_mask(layers[0])
-        for layer in layers[1:]:
-            union = np.logical_or(union, self.parent._binarize_mask(layer))
+        masks = _resize_to_match([self.parent._binarize_mask(l) for l in layers])
+        union = masks[0]
+        for m in masks[1:]:
+            union = np.logical_or(union, m)
         # Check if the original layers were binary or not
         # Re-label unless both layers are binary
         if not self.parent._check_layers_binary(layers):
@@ -205,10 +218,10 @@ Merge masks using various methods. Note that all buttons will use whatever Label
         # Get the vote count
         # NOTE: Threshold=1 is equivalent to a union, maybe link
         vote = np.sum(
-            [
+            _resize_to_match([
                 self.parent._binarize_mask(layer).astype(np.uint8)
                 for layer in layers
-            ],
+            ]),
             axis=0,
         )
         # Threshold the vote
@@ -278,10 +291,10 @@ Merge masks using various methods. Note that all buttons will use whatever Label
         }
         # Binarize each mask, multiply by its relevant power of 2, and sum to get combined mask
         res = np.sum(
-            [
+            _resize_to_match([
                 self.parent._binarize_mask(layer).astype(np.uint8) * multi
                 for multi, layer in layer_values.items()
-            ],
+            ]),
             axis=0,
         )
         # Create a colormap for the merged masks
