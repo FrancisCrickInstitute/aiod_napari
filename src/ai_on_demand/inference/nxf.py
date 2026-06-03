@@ -743,13 +743,17 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             for layer_name in all_layer_names:
                 if layer_name in self.viewer.layers:
                     self.viewer.layers.remove(layer_name)
-            # Delete masks that match determined layer names (this'll remove partial and full masks, if present)
-            mask_paths = self.mask_dir_path.glob(f"*{parent.run_hash}.rle") if parent.run_hash is not None else self.mask_dir_path.glob("*.rle")
-            for mask_path in mask_paths:
-                for layer_name in all_layer_names:
-                    if layer_name in mask_path.stem:
-                        mask_path.unlink()
-                        break
+            # Delete expected masks to avoid reload
+            # TODO: Switch fully to Nextflow for this, allowing resume to handle reload
+            for img_dict in parent.img_mask_info:
+                mask_root = parent._get_mask_layer_name(
+                    stem=img_dict["img_path"].stem,
+                    executed=True,
+                    truncate=False,
+                    preprocess_str=img_dict["preprocess_str"],
+                )
+                for mask_fpath in self.mask_dir_path.glob(f"{mask_root}*.rle"):
+                    mask_fpath.unlink()
         # Check if we already have all the masks
         else:
             proceed, img_paths, load_paths = self.parent.check_masks()
@@ -916,6 +920,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         if hasattr(self.parent, "watcher_enabled"):
             print("Deactivating watcher...")
             self.parent.watcher_enabled = False
+        self.parent.remove_mask_layers()
         self.pipeline_failed.emit()
 
     def _remove_cancel_btn(self):
@@ -1176,6 +1181,8 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             selected = selected[0]
             # Look for hash crumb pattern in layer name
             crumb = re.split(r"[\W_]", selected.name)[-1]
+            if not crumb:
+                return ""
             file_matches = list(
                 self.nxf_store_dir.glob(f"nxf_params_{crumb}*.yml")
             )

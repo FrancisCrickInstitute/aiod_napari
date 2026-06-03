@@ -1,5 +1,11 @@
 import hashlib
 import json
+import textwrap
+from pathlib import Path
+from typing import Optional, Union
+
+import aiod_utils.io
+import yaml
 from bioio_base.dimensions import (
     DEFAULT_DIMENSION_ORDER,
     DEFAULT_DIMENSION_ORDER_WITH_SAMPLES,
@@ -7,19 +13,16 @@ from bioio_base.dimensions import (
 )
 from napari.layers import Image
 from napari.utils.notifications import show_info
-from pathlib import Path
-import textwrap
-from typing import Optional, Union
-import warnings
-import yaml
+from platformdirs import user_cache_dir
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (
-    QVBoxLayout,
     QDialog,
-    QTextEdit,
+    QGridLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
 )
-from platformdirs import user_cache_dir
-import aiod_utils.io
 
 
 def sanitise_name(name: str) -> str:
@@ -191,3 +194,40 @@ class InfoWindow(QDialog):
 
         self.layout.addWidget(self.info_label)
         self.setLayout(self.layout)
+
+
+class ConfirmDialog(QDialog):
+    def __init__(
+        self,
+        parent=None,
+        title: str = "",
+        text: str = "",
+        informative_text: str = "",
+    ):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+
+        layout = QVBoxLayout()
+
+        text_label = QLabel(text)
+        text_label.setWordWrap(True)
+        layout.addWidget(text_label)
+
+        if informative_text:
+            info_label = QLabel(informative_text)
+            info_label.setWordWrap(True)
+            layout.addWidget(info_label)
+
+        btn_widget = QWidget()
+        btn_layout = QGridLayout()
+        no_btn = QPushButton("No")
+        no_btn.clicked.connect(self.reject)
+        no_btn.setDefault(True)
+        yes_btn = QPushButton("Yes")
+        yes_btn.clicked.connect(self.accept)
+        btn_layout.addWidget(no_btn, 0, 0)
+        btn_layout.addWidget(yes_btn, 0, 1)
+        btn_widget.setLayout(btn_layout)
+        layout.addWidget(btn_widget)
+
+        self.setLayout(layout)

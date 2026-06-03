@@ -69,7 +69,7 @@ Filter masks using various methods. Each function works on the currently selecte
                     layer.events.selected_label.connect(
                         self._update_selected_label
                     )
-                    layer.bind_key(KeyCode.Delete, self.filter_label)
+                    layer.bind_key(KeyCode.Delete, self.filter_label, overwrite=True)
 
     def add_layer(self, event):
         if isinstance(event.value, Labels):
@@ -78,7 +78,7 @@ Filter masks using various methods. Each function works on the currently selecte
                 self._update_selected_label
             )
             # Add a shortcut for deleting the currently selected label
-            event.value.bind_key(KeyCode.Delete, self.filter_label)
+            event.value.bind_key(KeyCode.Delete, self.filter_label, overwrite=True)
 
     def _update_selected_label(self, event):
         # NOTE: The vars within the event do not seem what we want, so grab directly
