@@ -1,13 +1,14 @@
 from functools import partial
 from typing import Optional
 
-import aiod_utils
 import napari
 import numpy as np
 import qtpy.QtCore
 from aiod_utils.preprocess import (
     get_all_preprocess_methods,
     get_params_str,
+    get_downsample_factor,
+    run_preprocess,
 )
 from napari.utils.notifications import show_error, show_info, show_warning
 from qtpy.QtWidgets import (
@@ -289,10 +290,10 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
             image = data
         # Extract blocksize for rescaling if downsampling used
         # This will be the corrected blocksize based on preview/run and input data shape
-        blocksize = aiod_utils.preprocess.get_downsample_factor(options)
+        blocksize = get_downsample_factor(options)
         # Apply the preprocessing and show the result
         # Convert to numpy array in case it's dask
-        image = aiod_utils.run_preprocess(np.array(image), options)
+        image = run_preprocess(np.array(image), options)
         prep_str = get_params_str(options)
         # Add metadata to skip file path checks in plugin
         self.viewer.add_image(
@@ -379,7 +380,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
         # empty sets (no preprocessing) short-circuit inside run_preprocess.
         for layer in img_layers:
             for d in prep_params:
-                aiod_utils.preprocess.run_preprocess(
+                run_preprocess(
                     img=layer.data, methods=d, only_check=True
                 )
 
