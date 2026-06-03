@@ -438,7 +438,14 @@ Run segmentation/inference on selected images using one of the available pre-tra
         return fname
 
     def _get_output_format(self) -> str:
-        """Return the currently selected output format ('rle' or 'tiff')."""
+        """Return the output format used for the executed run.
+
+        Reads from the stored nxf_params (set when the pipeline ran)
+        Falls back to the current dropdown value when no run has been executed yet.
+        """
+        nxf_params = self.subwidgets["nxf"].nxf_params
+        if nxf_params is not None and "output_format" in nxf_params:
+            return nxf_params["output_format"]
         return self.subwidgets["nxf"].output_format_box.currentText()
 
     def _load_mask_file(self, fpath: Path):

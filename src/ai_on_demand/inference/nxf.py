@@ -744,10 +744,8 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
                 if layer_name in self.viewer.layers:
                     self.viewer.layers.remove(layer_name)
             # Delete masks that match determined layer names (this'll remove partial and full masks, if present)
-            for mask_path in [
-                *self.mask_dir_path.glob("*.rle"),
-                *self.mask_dir_path.glob("*.tiff"),
-            ]:
+            mask_paths = self.mask_dir_path.glob(f"*{parent.run_hash}.rle") if parent.run_hash is not None else self.mask_dir_path.glob("*.rle")
+            for mask_path in mask_paths:
                 for layer_name in all_layer_names:
                     if layer_name in mask_path.stem:
                         mask_path.unlink()
