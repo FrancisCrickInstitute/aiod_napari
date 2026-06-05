@@ -380,6 +380,9 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
 
     def on_click_no_preprocess(self):
         """Save a 'No preprocessing' sentinel (empty list) as a preprocessing set."""
+        if any(not s for s in self.preprocess_sets):
+            show_warning("A 'No preprocessing' set already exists!")
+            return
         self.preprocess_sets.append([])
         self._reset_preprocess()
         self._update_viewsets_btn()
