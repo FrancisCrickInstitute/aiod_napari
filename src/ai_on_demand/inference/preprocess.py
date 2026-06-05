@@ -277,13 +277,6 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
                             show_info(
                                 f"Changed Filter footprint to {option['params']['footprint']} from {footprint} for 2D preview."
                             )
-                    elif option["name"] == "Downsample":
-                        blocksize = option["params"]["block_size"]
-                        if len(blocksize) == 3:
-                            option["params"]["block_size"] = blocksize[1:]
-                            show_info(
-                                f"Changed Downsample blocksize to {option['params']['block_size']} from {blocksize} for 2D preview."
-                            )
             else:
                 image = data
         else:

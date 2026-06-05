@@ -20,6 +20,7 @@ from ai_on_demand.widget_classes import MainWidget
 from ai_on_demand.utils import calc_param_hash
 import tifffile
 import aiod_utils.preprocess
+from aiod_utils.stacks import stack_to_shape
 from aiod_utils.io import extract_idxs_from_fname
 import aiod_utils.rle as aiod_rle
 
@@ -262,8 +263,11 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     )
                     if downsample_factor is not None:
                         img_metadata["downsample_factor"] = downsample_factor
-                    mask_shape = aiod_utils.preprocess.get_output_shape(
-                        options=prep_options, input_shape=img_shape
+                    mask_shape = stack_to_shape(
+                        aiod_utils.preprocess.get_output_shape(
+                            options=prep_options, input_shape=img_shape
+                        ),
+                        ndim=len(img_shape),
                     )
                 else:
                     mask_shape = img_shape
