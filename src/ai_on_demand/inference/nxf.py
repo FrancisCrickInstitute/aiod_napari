@@ -143,6 +143,8 @@ The profile determines where the pipeline is run.
                 "num_substacks": params.get("num_substacks"),
                 "overlap": params.get("overlap"),
                 "iou_threshold": params.get("iou_threshold"),
+                "output_format": params.get("output_format"),
+                "output_mask_type": params.get("output_mask_type"),
             },
         }
         return widget_config
@@ -174,6 +176,18 @@ The profile determines where the pipeline is run.
         self.overlap_z.setValue(overlap[2])
 
         self.iou_thresh.setValue(float(adv.get("iou_threshold")))
+
+        output_format = adv.get("output_format")
+        if output_format:
+            idx = self.output_format_box.findText(output_format)
+            if idx != -1:
+                self.output_format_box.setCurrentIndex(idx)
+
+        output_mask_type = adv.get("output_mask_type")
+        if output_mask_type:
+            idx = self.output_mask_type_box.findText(output_mask_type)
+            if idx != -1:
+                self.output_mask_type_box.setCurrentIndex(idx)
 
     def setup_nxf_dir_cmd(self, base_dir: Optional[Path] = None):
         # Set the basepath to store masks/checkpoints etc. in
@@ -494,6 +508,38 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         self.advanced_layout.addWidget(self.iou_thresh_label, 8, 0, 1, 1)
         self.advanced_layout.addWidget(self.iou_thresh, 8, 1, 1, 1)
 
+        # Add output format option
+        self.output_format_label = QLabel("Output format:")
+        self.output_format_label.setToolTip(
+            format_tooltip(
+                "Output format for the combined masks. 'rle' is compressed and used by AIoD; 'tiff' is a standard image format."
+            )
+        )
+        self.output_format_box = QComboBox()
+        self.output_format_box.addItems(["rle", "tiff"])
+        self.output_format_box.setCurrentText("rle")
+        self.output_format_box.setToolTip(
+            format_tooltip("Select the output format for the combined masks.")
+        )
+        self.advanced_layout.addWidget(self.output_format_label, 9, 0, 1, 1)
+        self.advanced_layout.addWidget(self.output_format_box, 9, 1, 1, 1)
+
+        # Add output mask type option
+        self.output_mask_type_label = QLabel("Output mask type:")
+        self.output_mask_type_label.setToolTip(
+            format_tooltip(
+                "Type of the output mask. 'instance' assigns a unique label to each object; 'binary' produces a foreground/background mask; 'auto' infers the type from the model output."
+            )
+        )
+        self.output_mask_type_box = QComboBox()
+        self.output_mask_type_box.addItems(["instance", "binary", "auto"])
+        self.output_mask_type_box.setCurrentText("instance")
+        self.output_mask_type_box.setToolTip(
+            format_tooltip("Select the output mask type.")
+        )
+        self.advanced_layout.addWidget(self.output_mask_type_label, 10, 0, 1, 1)
+        self.advanced_layout.addWidget(self.output_mask_type_box, 10, 1, 1, 1)
+
         # Run the function to update the tile size label to get initial value
         self.update_tile_size(val=None, clear_label=False)
 
@@ -677,6 +723,8 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             f"{round(self.overlap_x.value(), 2)},{round(self.overlap_y.value(), 2)},{round(self.overlap_z.value(), 2)}"
         )
         nxf_params["iou_threshold"] = round(self.iou_thresh.value(), 2)
+        nxf_params["output_format"] = self.output_format_box.currentText()
+        nxf_params["output_mask_type"] = self.output_mask_type_box.currentText()
         # Get the preprocessing options
         nxf_params["preprocess"] = parent.subwidgets[
             "preprocess"
