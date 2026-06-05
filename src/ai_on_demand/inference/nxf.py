@@ -532,8 +532,8 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             )
         )
         self.output_mask_type_box = QComboBox()
-        self.output_mask_type_box.addItems(["instance", "binary", "auto"])
-        self.output_mask_type_box.setCurrentText("instance")
+        self.output_mask_type_box.addItems(["auto", "binary", "instance"])
+        self.output_mask_type_box.setCurrentText("auto")
         self.output_mask_type_box.setToolTip(
             format_tooltip("Select the output mask type.")
         )
