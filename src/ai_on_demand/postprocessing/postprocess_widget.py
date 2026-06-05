@@ -1,6 +1,6 @@
 import napari
 from napari.layers import Labels
-from napari.utils.notifications import show_error
+from napari.utils.notifications import show_error, show_warning
 import numpy as np
 
 from ai_on_demand.inference import ExportWidget
@@ -43,8 +43,7 @@ Postprocess masks using various methods. This includes merging, splitting, and f
         ]
         layer_sizes = [layer.data.shape for layer in layers]
         if len(set(layer_sizes)) > 1:
-            # FIXME: Account for downsampling as we can rescale masks here
-            show_error("Selected label layers are not the same shape!")
+            show_warning("Selected label layers are not the same shape — smaller layers will be resized.")
         if len(layers) == 0:
             show_error("No label layers selected!")
         return layers
