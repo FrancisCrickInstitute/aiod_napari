@@ -267,9 +267,6 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
                             show_info(
                                 f"Changed Filter footprint to {option['params']['footprint']} from {footprint} for 2D preview."
                             )
-                    elif option["name"] == "Downsample":
-                        # block_size is always (D, H, W); Downsample.run handles 2D images
-                        pass
             else:
                 image = data
         else:
