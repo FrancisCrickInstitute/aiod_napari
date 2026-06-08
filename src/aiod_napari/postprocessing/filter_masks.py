@@ -1,28 +1,28 @@
 import operator
 from typing import Optional
 
-from app_model.types import KeyCode
 import napari
-from napari.utils.notifications import show_error
-from napari.layers import Labels
 import numpy as np
 import qtpy.QtCore
+from app_model.types import KeyCode
+from napari.layers import Labels
+from napari.utils.notifications import show_error
 from qtpy.QtWidgets import (
-    QGridLayout,
-    QWidget,
-    QLayout,
-    QLabel,
-    QComboBox,
-    QLineEdit,
     QCheckBox,
+    QComboBox,
+    QGridLayout,
+    QLabel,
+    QLayout,
+    QLineEdit,
     QPushButton,
     QSpinBox,
+    QWidget,
 )
-from skimage.measure._regionprops import COL_DTYPES
 from skimage.measure import regionprops
+from skimage.measure._regionprops import COL_DTYPES
 
-from aiod_napari.widget_classes import SubWidget
 from aiod_napari.utils import format_tooltip
+from aiod_napari.widget_classes import SubWidget
 
 
 class FilterMasks(SubWidget):
@@ -69,7 +69,9 @@ Filter masks using various methods. Each function works on the currently selecte
                     layer.events.selected_label.connect(
                         self._update_selected_label
                     )
-                    layer.bind_key(KeyCode.Delete, self.filter_label, overwrite=True)
+                    layer.bind_key(
+                        KeyCode.Delete, self.filter_label, overwrite=True
+                    )
 
     def add_layer(self, event):
         if isinstance(event.value, Labels):
@@ -78,7 +80,9 @@ Filter masks using various methods. Each function works on the currently selecte
                 self._update_selected_label
             )
             # Add a shortcut for deleting the currently selected label
-            event.value.bind_key(KeyCode.Delete, self.filter_label, overwrite=True)
+            event.value.bind_key(
+                KeyCode.Delete, self.filter_label, overwrite=True
+            )
 
     def _update_selected_label(self, event):
         # NOTE: The vars within the event do not seem what we want, so grab directly

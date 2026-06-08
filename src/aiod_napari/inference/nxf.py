@@ -1,38 +1,38 @@
-from os import environ
-from collections import defaultdict
-from pathlib import Path
+import re
 import shlex
 import shutil
 import subprocess
+from os import environ
+from pathlib import Path
 from typing import Optional, Union
-from urllib.parse import urlparse
-import re
 
-from aiod_registry import TASK_NAMES
+import aiod_utils.preprocess
 import napari
-from napari.qt.threading import thread_worker
-from napari.utils.notifications import show_info
-import pandas as pd
 import qtpy.QtCore
-from qtpy.QtWidgets import (
-    QWidget,
-    QLayout,
-    QGridLayout,
-    QHBoxLayout,
-    QVBoxLayout,
-    QLabel,
-    QComboBox,
-    QPushButton,
-    QFileDialog,
-    QProgressBar,
-    QCheckBox,
-    QSpinBox,
-    QDoubleSpinBox,
-    QGroupBox,
-    QMessageBox,
-)
 import tqdm
 import yaml
+from aiod_registry import TASK_NAMES
+from aiod_utils.io import image_paths_to_csv
+from aiod_utils.stacks import Stack, calc_num_stacks, generate_stack_indices
+from napari.qt.threading import thread_worker
+from napari.utils.notifications import show_info
+from qtpy.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDoubleSpinBox,
+    QFileDialog,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLayout,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSpinBox,
+    QVBoxLayout,
+    QWidget,
+)
 
 from aiod_napari.utils import (
     InfoWindow,
@@ -41,9 +41,6 @@ from aiod_napari.utils import (
     sanitise_name,
 )
 from aiod_napari.widget_classes import SubWidget
-import aiod_utils.preprocess
-from aiod_utils.stacks import generate_stack_indices, calc_num_stacks, Stack
-from aiod_utils.io import image_paths_to_csv
 
 
 class NxfWidget(SubWidget):
@@ -537,7 +534,9 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         self.output_mask_type_box.setToolTip(
             format_tooltip("Select the output mask type.")
         )
-        self.advanced_layout.addWidget(self.output_mask_type_label, 10, 0, 1, 1)
+        self.advanced_layout.addWidget(
+            self.output_mask_type_label, 10, 0, 1, 1
+        )
         self.advanced_layout.addWidget(self.output_mask_type_box, 10, 1, 1, 1)
 
         # Run the function to update the tile size label to get initial value
@@ -616,7 +615,8 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
                     )
                 else:
                     output_shape = aiod_utils.preprocess.get_output_shape(
-                        d["prep_set"], input_shape=Stack(height=H, width=W, depth=num_slices)
+                        d["prep_set"],
+                        input_shape=Stack(height=H, width=W, depth=num_slices),
                     )
                     final_shape = output_shape._replace(channels=channels)
                 # Calculate the number of substacks
@@ -635,7 +635,12 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
                 total_substacks += num_substacks
         # Convert to a DataFrame and save
         image_paths_to_csv(
-            img_paths, self.img_list_fpath, dims, dtypes, overwrite=True, index=False
+            img_paths,
+            self.img_list_fpath,
+            dims,
+            dtypes,
+            overwrite=True,
+            index=False,
         )
         # Store the total number of jobs
         # NOTE: Used as an estimate to info the user of how many jobs will be submitted
@@ -678,8 +683,14 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         # Get the model config path
         config_path = model_widget.get_model_config()
         # Use the canonical slug for the variant to stay consistent with config file naming
-        task_model_version = (parent.executed_task, parent.executed_model, parent.executed_variant)
-        variant_slug = model_widget.version_slugs.get(task_model_version, sanitise_name(parent.executed_variant))
+        task_model_version = (
+            parent.executed_task,
+            parent.executed_model,
+            parent.executed_variant,
+        )
+        variant_slug = model_widget.version_slugs.get(
+            task_model_version, sanitise_name(parent.executed_variant)
+        )
         # Construct the proper mask directory path
         self.mask_dir_path = (
             self.nxf_store_dir
@@ -719,7 +730,9 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         )
         nxf_params["iou_threshold"] = round(self.iou_thresh.value(), 2)
         nxf_params["output_format"] = self.output_format_box.currentText()
-        nxf_params["output_mask_type"] = self.output_mask_type_box.currentText()
+        nxf_params["output_mask_type"] = (
+            self.output_mask_type_box.currentText()
+        )
         # Get the preprocessing options
         nxf_params["preprocess"] = parent.subwidgets[
             "preprocess"

@@ -1,28 +1,28 @@
 import copy
-from pathlib import Path
 import time
+from pathlib import Path
 from typing import Optional, Union
 
+import aiod_utils.preprocess
+import aiod_utils.rle as aiod_rle
 import napari
-from napari.qt.threading import thread_worker
 import numpy as np
+import tifffile
+from aiod_utils.io import extract_idxs_from_fname
+from aiod_utils.stacks import stack_to_shape
+from napari.qt.threading import thread_worker
 
 from aiod_napari.inference import (
-    TaskWidget,
+    ConfigWidget,
     DataWidget,
     ExportWidget,
     ModelWidget,
     NxfWidget,
     PreprocessWidget,
-    ConfigWidget,
+    TaskWidget,
 )
-from aiod_napari.widget_classes import MainWidget
 from aiod_napari.utils import calc_param_hash
-import tifffile
-import aiod_utils.preprocess
-from aiod_utils.stacks import stack_to_shape
-from aiod_utils.io import extract_idxs_from_fname
-import aiod_utils.rle as aiod_rle
+from aiod_napari.widget_classes import MainWidget
 
 
 class Inference(MainWidget):
@@ -192,14 +192,22 @@ Run segmentation/inference on selected images using one of the available pre-tra
             )
             # Grab corresponding image layer to get info as needed
             img_layer = self.viewer.layers[f"{fpath.stem}"]
-            img_metadata = copy.deepcopy(img_layer.metadata) if img_layer.metadata is not None else {}
+            img_metadata = (
+                copy.deepcopy(img_layer.metadata)
+                if img_layer.metadata is not None
+                else {}
+            )
             # If it does, load it
             if mask_fpath.exists():
                 mask_data, metadata = self._load_mask_file(mask_fpath)
                 metadata = metadata["metadata"]
                 metadata["img_scale"] = img_layer.scale
                 # Check the filename if there's downsampling to ensure correct scaling
-                downsample_factor = aiod_utils.preprocess.get_downsample_factor(methods=None, filename=mask_fpath.stem)
+                downsample_factor = (
+                    aiod_utils.preprocess.get_downsample_factor(
+                        methods=None, filename=mask_fpath.stem
+                    )
+                )
                 if downsample_factor is not None:
                     metadata["downsample_factor"] = downsample_factor
                 # Check if the mask layer already exists
@@ -216,7 +224,8 @@ Run segmentation/inference on selected images using one of the available pre-tra
                         visible=True,
                         opacity=0.5,
                         metadata=metadata,
-                        scale=img_layer.scale * metadata.get("downsample_factor", 1.0)
+                        scale=img_layer.scale
+                        * metadata.get("downsample_factor", 1.0),
                     )
             else:
                 # If the associated image is present, use its shape
@@ -330,12 +339,14 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     all_layer_names.append(layer_name)
                     prep_options.append(prep_set if prep_set else None)
                     preprocess_strs.append(suffix)
-        self.mask_prefixes = {
-            i.split("_masks_")[0] for i in all_layer_names
-        }
+        self.mask_prefixes = {i.split("_masks_")[0] for i in all_layer_names}
         # Insert all info into structure for later use
         for fpath, layer_name, prep_set, preprocess_str in zip(
-            all_img_paths, all_layer_names, prep_options, preprocess_strs, strict=True
+            all_img_paths,
+            all_layer_names,
+            prep_options,
+            preprocess_strs,
+            strict=True,
         ):
             self.img_mask_info.append(
                 {
@@ -472,7 +483,9 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 # e.g. {"downsample_factor": 2}. Wrap it to match the rle metadata structure.
                 imagej_meta = tif.imagej_metadata or {}
                 # Strip tifffile bookkeeping keys that aren't part of our saved metadata
-                imagej_meta = {k: v for k, v in imagej_meta.items() if k not in ("axes",)}
+                imagej_meta = {
+                    k: v for k, v in imagej_meta.items() if k not in ("axes",)
+                }
             return arr, {"metadata": imagej_meta}
         else:
             encoding = aiod_rle.load_encoding(fpath)
@@ -541,7 +554,9 @@ Run segmentation/inference on selected images using one of the available pre-tra
             label_layer = self.viewer.layers[mask_layer_name]
             # On first mask for this layer, check if shape matches model output and recreate if not
             if not label_layer.visible and label_layer.ndim != mask_arr.ndim:
-                correct_shape = tuple(s for s in label_layer.data.shape if s > 1)
+                correct_shape = tuple(
+                    s for s in label_layer.data.shape if s > 1
+                )
                 layer_idx = self.viewer.layers.index(label_layer)
                 layer_meta = label_layer.metadata
                 self.viewer.layers.remove(label_layer)
@@ -570,9 +585,13 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     label_layer.data[start_y:end_y, start_x:end_x] = mask_arr
             label_layer.visible = True
             # Apply scale for downsampled masks, accounting for pixel size scaling if present
-            downsample_factor = label_layer.metadata.get("downsample_factor", None)
+            downsample_factor = label_layer.metadata.get(
+                "downsample_factor", None
+            )
             if downsample_factor is not None:
-                label_layer.scale = label_layer.metadata["img_scale"] * downsample_factor
+                label_layer.scale = (
+                    label_layer.metadata["img_scale"] * downsample_factor
+                )
             # Try to rearrange the layers to get them on top
             idxs = []
             # Have to check due to possible delay in loading
@@ -626,9 +645,13 @@ Run segmentation/inference on selected images using one of the available pre-tra
             label_layer.data = mask_arr
             label_layer.visible = True
             # Apply scale for downsampled masks, accounting for pixel size scaling if present
-            downsample_factor = label_layer.metadata.get("downsample_factor", None)
+            downsample_factor = label_layer.metadata.get(
+                "downsample_factor", None
+            )
             if downsample_factor is not None:
-                label_layer.scale = label_layer.metadata["img_scale"] * downsample_factor
+                label_layer.scale = (
+                    label_layer.metadata["img_scale"] * downsample_factor
+                )
         # Now we'll sort all the layers, grouping together the image and mask layers for each image
         # Get the image layer names
         image_layers = sorted(

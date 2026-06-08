@@ -3,27 +3,27 @@ from functools import partial
 from typing import Optional
 
 import napari
+import pandas as pd
+import skimage.measure
+from napari.layers import Image, Labels
 from napari.qt.threading import thread_worker
 from napari.utils.notifications import show_info
-from napari.layers import Image, Labels
-import pandas as pd
+from qtpy import QtGui
 from qtpy.QtWidgets import (
-    QWidget,
-    QLayout,
-    QGridLayout,
-    QComboBox,
-    QLabel,
     QCheckBox,
+    QComboBox,
+    QFileDialog,
+    QGridLayout,
+    QLabel,
+    QLayout,
     QPushButton,
     QTextBrowser,
-    QFileDialog,
+    QWidget,
 )
-from qtpy import QtGui
-import skimage.measure
 
-from aiod_napari.widget_classes import MainWidget, SubWidget
-from aiod_napari.utils import format_tooltip
 import aiod_napari.evaluation.metrics as aiod_metrics
+from aiod_napari.utils import format_tooltip
+from aiod_napari.widget_classes import MainWidget, SubWidget
 
 
 class Evaluation(MainWidget):

@@ -373,9 +373,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
         # empty sets (no preprocessing) short-circuit inside run_preprocess.
         for layer in img_layers:
             for d in prep_params:
-                run_preprocess(
-                    img=layer.data, methods=d, only_check=True
-                )
+                run_preprocess(img=layer.data, methods=d, only_check=True)
 
     def on_click_no_preprocess(self):
         """Save a 'No preprocessing' sentinel (empty list) as a preprocessing set."""

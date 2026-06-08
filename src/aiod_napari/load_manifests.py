@@ -1,4 +1,5 @@
 from aiod_registry import load_manifests
+
 from aiod_napari.utils import load_settings
 
 

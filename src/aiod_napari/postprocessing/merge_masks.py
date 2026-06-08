@@ -3,34 +3,35 @@ from typing import Optional
 
 import glasbey
 import napari
-from napari.utils.notifications import show_warning, show_error
-from napari._qt.qt_resources import QColoredSVGIcon
 import numpy as np
-import qtpy.QtCore
-from qtpy.QtWidgets import (
-    QPushButton,
-    QGridLayout,
-    QWidget,
-    QLayout,
-    QLabel,
-    QSpinBox,
-    QDialog,
-    QCheckBox,
-)
-from qtpy.QtGui import QIcon
 import pandas as pd
+import qtpy.QtCore
 import scipy.ndimage as ndi
+from napari._qt.qt_resources import QColoredSVGIcon
+from napari.utils.notifications import show_error, show_warning
+from qtpy.QtWidgets import (
+    QCheckBox,
+    QDialog,
+    QGridLayout,
+    QLabel,
+    QLayout,
+    QPushButton,
+    QSpinBox,
+    QWidget,
+)
 from skimage.transform import resize
 
-from aiod_napari.widget_classes import SubWidget
 from aiod_napari.utils import format_tooltip
+from aiod_napari.widget_classes import SubWidget
 
 
 def _resize_to_match(arrays: list[np.ndarray]) -> list[np.ndarray]:
     """Resize arrays to the largest spatial dimensions in the list (nearest-neighbor)."""
     target_shape = tuple(np.max([a.shape for a in arrays], axis=0))
     return [
-        resize(a, target_shape, order=0, preserve_range=True, anti_aliasing=False).astype(a.dtype)
+        resize(
+            a, target_shape, order=0, preserve_range=True, anti_aliasing=False
+        ).astype(a.dtype)
         if a.shape != target_shape
         else a
         for a in arrays
@@ -182,7 +183,9 @@ Merge masks using various methods. Note that all buttons will use whatever Label
             return
         # Get the union of the masks
         # NOTE: Technically special case of mask_vote, but logical_or should be faster so maybe worth separating
-        masks = _resize_to_match([self.parent._binarize_mask(l) for l in layers])
+        masks = _resize_to_match(
+            [self.parent._binarize_mask(l) for l in layers]
+        )
         union = masks[0]
         for m in masks[1:]:
             union = np.logical_or(union, m)
@@ -218,10 +221,12 @@ Merge masks using various methods. Note that all buttons will use whatever Label
         # Get the vote count
         # NOTE: Threshold=1 is equivalent to a union, maybe link
         vote = np.sum(
-            _resize_to_match([
-                self.parent._binarize_mask(layer).astype(np.uint8)
-                for layer in layers
-            ]),
+            _resize_to_match(
+                [
+                    self.parent._binarize_mask(layer).astype(np.uint8)
+                    for layer in layers
+                ]
+            ),
             axis=0,
         )
         # Threshold the vote
@@ -291,10 +296,12 @@ Merge masks using various methods. Note that all buttons will use whatever Label
         }
         # Binarize each mask, multiply by its relevant power of 2, and sum to get combined mask
         res = np.sum(
-            _resize_to_match([
-                self.parent._binarize_mask(layer).astype(np.uint8) * multi
-                for multi, layer in layer_values.items()
-            ]),
+            _resize_to_match(
+                [
+                    self.parent._binarize_mask(layer).astype(np.uint8) * multi
+                    for multi, layer in layer_values.items()
+                ]
+            ),
             axis=0,
         )
         # Create a colormap for the merged masks

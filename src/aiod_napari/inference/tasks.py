@@ -1,12 +1,12 @@
 from typing import Optional
 
-from aiod_registry import TASK_NAMES
 import napari
+from aiod_registry import TASK_NAMES
 from qtpy.QtWidgets import (
-    QWidget,
-    QLayout,
     QGridLayout,
+    QLayout,
     QRadioButton,
+    QWidget,
 )
 
 from aiod_napari.widget_classes import SubWidget

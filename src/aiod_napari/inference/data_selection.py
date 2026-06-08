@@ -2,25 +2,25 @@ from collections import Counter
 from pathlib import Path
 from typing import Optional, Union
 
+import aiod_utils.io as aiod_io
 import napari
+import numpy as np
+import pandas as pd
+import qtpy.QtCore
 from napari.layers import Image, Layer
 from napari.qt.threading import thread_worker
-import numpy as np
-import qtpy.QtCore
 from qtpy.QtWidgets import (
-    QWidget,
-    QLayout,
-    QGridLayout,
-    QPushButton,
-    QLabel,
     QFileDialog,
+    QGridLayout,
+    QLabel,
+    QLayout,
+    QPushButton,
+    QWidget,
 )
-import pandas as pd
 
-from aiod_napari.widget_classes import SubWidget
-from aiod_napari.utils import format_tooltip, get_image_layer_path
 from aiod_napari.io import prepare_bioio_as_napari_layer
-import aiod_utils.io as aiod_io
+from aiod_napari.utils import format_tooltip, get_image_layer_path
+from aiod_napari.widget_classes import SubWidget
 
 
 class DataWidget(SubWidget):

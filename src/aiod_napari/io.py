@@ -1,14 +1,14 @@
+import contextlib
+from functools import partial
 from pathlib import Path
 from typing import Union
-from functools import partial
-from bioio_base.dimensions import DEFAULT_DIMENSION_ORDER_WITH_SAMPLES
-from bioio import BioImage
-from bioio_base.reader import Reader
-from bioio_base.exceptions import UnsupportedFileFormatError
 
-import aiod_utils.rle
 import aiod_utils.io
-import contextlib
+import aiod_utils.rle
+from bioio import BioImage
+from bioio_base.dimensions import DEFAULT_DIMENSION_ORDER_WITH_SAMPLES
+from bioio_base.exceptions import UnsupportedFileFormatError
+from bioio_base.reader import Reader
 
 
 def get_bioio_reader(path: Union[str, Path]):
@@ -23,7 +23,8 @@ def get_bioio_reader(path: Union[str, Path]):
                 return None
         # INFO: this reduces redundancy, as BioImage.__init__() will call determine_plugin() again internally anyway, unless a specific reader is forwarded to BioImage later on.
         return partial(
-            bioio_reader, bioio_reader_class=reader or plugin.metadata.get_reader()
+            bioio_reader,
+            bioio_reader_class=reader or plugin.metadata.get_reader(),
         )
     except (
         AttributeError,
@@ -34,7 +35,7 @@ def get_bioio_reader(path: Union[str, Path]):
 
 
 def bioio_reader(
-    path: Union[str, Path], bioio_reader_class: Union[Reader, None]=None
+    path: Union[str, Path], bioio_reader_class: Union[Reader, None] = None
 ):
     # Load the image with utils loader, keeping defaults
     path = Path(path)
@@ -58,7 +59,9 @@ def prepare_bioio_as_napari_layer(bioio_img, path):
     layer_attributes = {
         "name": path.stem,
         "rgb": aiod_utils.io.guess_rgba(bioio_img),
-        "scale": [getattr(bioio_img.scale, d) or 1 for d in dim_order if d!='S'],
+        "scale": [
+            getattr(bioio_img.scale, d) or 1 for d in dim_order if d != "S"
+        ],
         "metadata": {
             "path": path,
             "bioio_metadata": {

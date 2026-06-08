@@ -3,20 +3,20 @@ from typing import Optional
 
 import aiod_utils.rle as aiod_rle
 import napari
-from napari.utils.notifications import show_info
 import numpy as np
 import qtpy.QtCore
-from qtpy.QtWidgets import (
-    QWidget,
-    QLayout,
-    QGridLayout,
-    QPushButton,
-    QComboBox,
-    QCheckBox,
-    QFileDialog,
-    QLabel,
-)
 import skimage.io
+from napari.utils.notifications import show_info
+from qtpy.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFileDialog,
+    QGridLayout,
+    QLabel,
+    QLayout,
+    QPushButton,
+    QWidget,
+)
 
 from aiod_napari.utils import format_tooltip
 from aiod_napari.widget_classes import SubWidget

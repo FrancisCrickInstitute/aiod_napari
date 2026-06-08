@@ -13,7 +13,7 @@ from qtpy.QtCore import (
     Signal,
 )
 from qtpy.QtGui import QIcon, QPainter, QPalette, QPixmap
-from qtpy.QtWidgets import QFrame, QPushButton, QVBoxLayout, QWidget, QLayout
+from qtpy.QtWidgets import QFrame, QLayout, QPushButton, QVBoxLayout, QWidget
 
 
 class QCollapsible(QFrame):

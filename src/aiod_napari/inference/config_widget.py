@@ -1,18 +1,19 @@
+from datetime import datetime
 from typing import Optional
 
 import napari
 import yaml
-from datetime import datetime
 from qtpy.QtWidgets import (
-    QWidget,
-    QLayout,
+    QFileDialog,
     QGridLayout,
     QGroupBox,
     QLabel,
-    QPushButton,
+    QLayout,
     QLineEdit,
-    QFileDialog,
+    QPushButton,
+    QWidget,
 )
+
 from aiod_napari.utils import format_tooltip, get_plugin_cache
 from aiod_napari.widget_classes import SubWidget
 

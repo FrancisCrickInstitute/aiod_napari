@@ -2,35 +2,33 @@ import builtins
 from pathlib import Path
 
 import napari
-from napari.utils.notifications import show_error
+import yaml
 from napari._qt.qt_resources import QColoredSVGIcon
+from napari.utils.notifications import show_error
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (
-    QWidget,
-    QLayout,
-    QGridLayout,
-    QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
-    QFileDialog,
-    QLabel,
-    QLineEdit,
-    QComboBox,
     QCheckBox,
-    QDialog,
-    QTextEdit,
+    QComboBox,
+    QFileDialog,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLayout,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
 )
-import yaml
 
-from aiod_napari.widget_classes import SubWidget
 from aiod_napari.utils import (
-    format_tooltip,
-    sanitise_name,
-    merge_dicts,
+    InfoWindow,
     calc_param_hash,
+    format_tooltip,
     load_config_file,
-    InfoWindow
+    merge_dicts,
+    sanitise_name,
 )
+from aiod_napari.widget_classes import SubWidget
 
 
 class ModelWidget(SubWidget):
@@ -285,7 +283,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         """
             )
         )
-        self.model_config_layout.addWidget(self.model_config_load_btn, 0, 0, 1, 2)
+        self.model_config_layout.addWidget(
+            self.model_config_load_btn, 0, 0, 1, 2
+        )
         # Add a label to display the selected config file (if any)
         self.model_config_label = QLabel("No model config file selected.")
         self.model_config_label.setWordWrap(True)
@@ -303,7 +303,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         self.model_param_widget = QWidget()
         self.model_param_layout = QVBoxLayout()
         # Add a button for resetting the config / UI params to defaults
-        self.model_config_clear_btn = QPushButton("Reset parameters to defaults")
+        self.model_config_clear_btn = QPushButton(
+            "Reset parameters to defaults"
+        )
         self.model_config_clear_btn.clicked.connect(self.reset_model_config)
         self.model_config_clear_btn.setToolTip(
             format_tooltip(
@@ -464,9 +466,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         self.model_param_layout.removeWidget(self.curr_model_param_widget)
         self.curr_model_param_widget.setParent(None)
 
-    def set_model_param_widget(
-        self, task_model_version: tuple | None = None
-    ):
+    def set_model_param_widget(self, task_model_version: tuple | None = None):
         if task_model_version is not None:
             self.curr_model_param_widget = self.model_param_widgets_dict[
                 task_model_version
@@ -509,7 +509,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             "Select a model config",
             str(self.config_dir),
             "Configs (*.yaml *.yml *.json)",
-        ) # type: ignore
+        )  # type: ignore
         # Reset if dialog cancelled
         if fname == "":
             return
@@ -541,7 +541,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
                 # Need to first load the project config
                 project_config = load_config_file(config_path)
                 # Then get the path to the model config contained therein
-                model_config_path = Path(project_config["model"]["model_config"])
+                model_config_path = Path(
+                    project_config["model"]["model_config"]
+                )
                 # Now try to load *that* config and populate the UI widgets
                 config = load_config_file(model_config_path)
                 self.fill_ui_from_config(config)
@@ -549,7 +551,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
                     f"Config '{model_config_path.name}' loaded into UI parameters."
                 )
             except KeyError as e:
-                show_error(f"Failed to load config '{config_path.name}': assumed input was a project config but no {e} key found!")
+                show_error(
+                    f"Failed to load config '{config_path.name}': assumed input was a project config but no {e} key found!"
+                )
                 self.model_config_label.setText("No model config file loaded.")
                 return
         except UserWarning as e:
@@ -750,7 +754,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             task_model_version = self.get_task_model_variant(executed=False)
         if not all(task_model_version):
             raise ValueError("Cannot read UI: no model/task/version selected.")
-        gui_dict = self.create_config_params(task_model_version=task_model_version)
+        gui_dict = self.create_config_params(
+            task_model_version=task_model_version
+        )
         return merge_dicts(config, gui_dict)
 
     def get_task_model_variant(
@@ -773,7 +779,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
     def get_task_model_variant_name(self, executed: bool = True) -> str:
         task, model, version = self.get_task_model_variant(executed)
         task_model_version = (task, model, version)
-        slug = self.version_slugs.get(task_model_version, sanitise_name(version))
+        slug = self.version_slugs.get(
+            task_model_version, sanitise_name(version)
+        )
         return f"{task}-{model}-{slug}"
 
     def load_config(self, config):
@@ -797,7 +805,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             item_text = self.model_version_dropdown.itemText(i)
             # Match by slug or exact name to handle saved configs using either form
             task_mv = (self.parent.selected_task, model_name, item_text)
-            item_slug = self.version_slugs.get(task_mv, sanitise_name(item_text))
+            item_slug = self.version_slugs.get(
+                task_mv, sanitise_name(item_text)
+            )
             if item_slug == model_version or item_text == model_version:
                 version_index = i
                 break
@@ -858,5 +868,7 @@ Version: {task_model_version[2]}
         if config_path is not None:
             model_info += f"\nConfig path: {config_path}"
 
-        self.model_window = InfoWindow(self, title="Model Information", content=model_info)
+        self.model_window = InfoWindow(
+            self, title="Model Information", content=model_info
+        )
         self.model_window.show()

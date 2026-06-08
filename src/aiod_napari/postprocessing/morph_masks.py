@@ -1,28 +1,28 @@
 from typing import Optional
 
-from aiod_utils.preprocess import Filter
 import dask.array as da
 import dask_image.ndmeasure as dask_ndi
 import dask_image.ndmorph as dask_morph
 import napari
-from napari.utils.notifications import show_error
 import numpy as np
 import qtpy.QtCore
+import scipy.ndimage as ndi
+import skimage.morphology
+from aiod_utils.preprocess import Filter
+from napari.utils.notifications import show_error
 from qtpy.QtWidgets import (
-    QGridLayout,
-    QWidget,
-    QLayout,
-    QLabel,
-    QComboBox,
     QCheckBox,
+    QComboBox,
+    QGridLayout,
+    QLabel,
+    QLayout,
     QPushButton,
     QSpinBox,
+    QWidget,
 )
-import skimage.morphology
-import scipy.ndimage as ndi
 
-from aiod_napari.widget_classes import SubWidget
 from aiod_napari.utils import format_tooltip
+from aiod_napari.widget_classes import SubWidget
 
 
 class MorphMasks(SubWidget):

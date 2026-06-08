@@ -1,7 +1,7 @@
-from napari.utils.notifications import show_info
 import requests
-
 from aiod_utils.io import load_image_data
+from napari.utils.notifications import show_info
+
 from aiod_napari.utils import get_plugin_cache
 
 

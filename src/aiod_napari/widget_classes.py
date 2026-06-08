@@ -1,24 +1,24 @@
+import string
 from abc import abstractmethod
 from pathlib import Path
-import string
 from typing import Optional
-import yaml
 
 import napari
+import qtpy.QtCore
+import yaml
 from napari.utils.notifications import show_info
 from npe2 import PluginManager
-from qtpy.QtWidgets import (
-    QWidget,
-    QScrollArea,
-    QLayout,
-    QGridLayout,
-    QLabel,
-    QVBoxLayout,
-    QFrame,
-    QGroupBox,
-)
 from qtpy.QtGui import QPixmap
-import qtpy.QtCore
+from qtpy.QtWidgets import (
+    QFrame,
+    QGridLayout,
+    QGroupBox,
+    QLabel,
+    QLayout,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
 
 from aiod_napari.qcollapsible import QCollapsible
 from aiod_napari.utils import (
