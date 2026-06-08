@@ -1,5 +1,5 @@
 [project]
-name = "ai-on-demand"
+name = "aiod-napari"
 dynamic = ["version"]
 description = "A plugin for segmenting images using AI models via the Segment-Flow Nextflow pipeline."
 readme = "README.md"
@@ -53,7 +53,7 @@ testing = [
 ]
 
 [project.entry-points."napari.manifest"]
-ai-on-demand = "ai_on_demand:napari.yaml"
+aiod-napari = "aiod_napari:napari.yaml"
 
 
 
@@ -72,7 +72,7 @@ where = ["src"]
 
 
 [tool.setuptools.dynamic]
-version = {attr = "ai_on_demand.__init__.__version__"}
+version = {attr = "aiod_napari.__init__.__version__"}
 
 [tool.black]
 line-length = 79

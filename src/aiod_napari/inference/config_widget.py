@@ -13,8 +13,8 @@ from qtpy.QtWidgets import (
     QLineEdit,
     QFileDialog,
 )
-from ai_on_demand.utils import format_tooltip, get_plugin_cache
-from ai_on_demand.widget_classes import SubWidget
+from aiod_napari.utils import format_tooltip, get_plugin_cache
+from aiod_napari.widget_classes import SubWidget
 
 
 class ConfigWidget(SubWidget):

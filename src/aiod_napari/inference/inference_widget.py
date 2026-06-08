@@ -7,7 +7,7 @@ import napari
 from napari.qt.threading import thread_worker
 import numpy as np
 
-from ai_on_demand.inference import (
+from aiod_napari.inference import (
     TaskWidget,
     DataWidget,
     ExportWidget,
@@ -16,8 +16,8 @@ from ai_on_demand.inference import (
     PreprocessWidget,
     ConfigWidget,
 )
-from ai_on_demand.widget_classes import MainWidget
-from ai_on_demand.utils import calc_param_hash
+from aiod_napari.widget_classes import MainWidget
+from aiod_napari.utils import calc_param_hash
 import tifffile
 import aiod_utils.preprocess
 from aiod_utils.stacks import stack_to_shape

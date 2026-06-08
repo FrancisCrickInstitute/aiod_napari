@@ -20,8 +20,8 @@ from qtpy.QtWidgets import (
 from qtpy.QtGui import QPixmap
 import qtpy.QtCore
 
-from ai_on_demand.qcollapsible import QCollapsible
-from ai_on_demand.utils import (
+from aiod_napari.qcollapsible import QCollapsible
+from aiod_napari.utils import (
     format_tooltip,
     get_plugin_cache,
 )
@@ -36,8 +36,8 @@ class MainWidget(QWidget):
     ):
         super().__init__()
         pm = PluginManager.instance()
-        self.all_manifests = pm.commands.execute("ai-on-demand.get_manifests")
-        self.plugin_settings = pm.commands.execute("ai-on-demand.get_settings")
+        self.all_manifests = pm.commands.execute("aiod-napari.get_manifests")
+        self.plugin_settings = pm.commands.execute("aiod-napari.get_settings")
 
         self.viewer = napari_viewer
         self.scroll = QScrollArea()

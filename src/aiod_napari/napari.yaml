@@ -1,57 +1,57 @@
-name: ai-on-demand
+name: aiod-napari
 display_name: AI OnDemand
-on_activate: ai_on_demand.load_manifests:activate_plugin
+on_activate: aiod_napari.load_manifests:activate_plugin
 contributions:
   commands:
-    - id: ai-on-demand.inference
-      python_name: ai_on_demand.inference:Inference
+    - id: aiod-napari.inference
+      python_name: aiod_napari.inference:Inference
       title: Segment using pre-trained models
       short_title: Inference
-    - id: ai-on-demand.evaluation
-      python_name: ai_on_demand.evaluation:Evaluation
+    - id: aiod-napari.evaluation
+      python_name: aiod_napari.evaluation:Evaluation
       title: Evaluate segmentations
       short_title: Evaluation
-    - id: ai-on-demand.postprocess
-      python_name: ai_on_demand.postprocessing:Postprocess
+    - id: aiod-napari.postprocess
+      python_name: aiod_napari.postprocessing:Postprocess
       title: Postprocess segmentations
       short_title: Postprocess
-    - id: ai-on-demand.example_data
+    - id: aiod-napari.example_data
       title: Example FIB SEM data
       short_title: Example Data
-      python_name: ai_on_demand.example_data:load_example_data
-    - id: ai-on-demand.bioio_reader
+      python_name: aiod_napari.example_data:load_example_data
+    - id: aiod-napari.bioio_reader
       title: Read bioimaging file formats
-      python_name: ai_on_demand.io:get_bioio_reader
-    - id: ai-on-demand.rle_reader
+      python_name: aiod_napari.io:get_bioio_reader
+    - id: aiod-napari.rle_reader
       title: Read RLE segmentations
-      python_name: ai_on_demand.io:get_rle_reader
-    - id: ai-on-demand.rle_writer
+      python_name: aiod_napari.io:get_rle_reader
+    - id: aiod-napari.rle_writer
       title: Write segmentations to RLE format
-      python_name: ai_on_demand.io:rle_writer
+      python_name: aiod_napari.io:rle_writer
   widgets:
-    - command: ai-on-demand.inference
+    - command: aiod-napari.inference
       display_name: Inference
-    - command: ai-on-demand.evaluation
+    - command: aiod-napari.evaluation
       display_name: Segmentation Evaluation
-    - command: ai-on-demand.postprocess
+    - command: aiod-napari.postprocess
       display_name: Postprocess
   sample_data:
-    - command: ai-on-demand.example_data
+    - command: aiod-napari.example_data
       display_name: Example FIB SEM data
       key: example_fibsem
   readers:
-    - command: ai-on-demand.rle_reader
+    - command: aiod-napari.rle_reader
       filename_patterns:
         - '*.pkl'
         - '*.pickle'
         - '*.rle'
       accepts_directories: false
-    - command: ai-on-demand.bioio_reader
+    - command: aiod-napari.bioio_reader
       filename_patterns:
       - '*'
       accepts_directories: false
   writers:
-    - command: ai-on-demand.rle_writer
+    - command: aiod-napari.rle_writer
       layer_types:
         - labels
       filename_extensions:

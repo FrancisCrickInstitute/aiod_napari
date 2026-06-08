@@ -9,7 +9,7 @@ from qtpy.QtWidgets import (
     QRadioButton,
 )
 
-from ai_on_demand.widget_classes import SubWidget
+from aiod_napari.widget_classes import SubWidget
 
 
 class TaskWidget(SubWidget):

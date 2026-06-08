@@ -3,11 +3,11 @@ from napari.layers import Labels
 from napari.utils.notifications import show_error, show_warning
 import numpy as np
 
-from ai_on_demand.inference import ExportWidget
-from ai_on_demand.postprocessing.merge_masks import MergeMasks
-from ai_on_demand.postprocessing.filter_masks import FilterMasks
-from ai_on_demand.postprocessing.morph_masks import MorphMasks
-from ai_on_demand.widget_classes import MainWidget
+from aiod_napari.inference import ExportWidget
+from aiod_napari.postprocessing.merge_masks import MergeMasks
+from aiod_napari.postprocessing.filter_masks import FilterMasks
+from aiod_napari.postprocessing.morph_masks import MorphMasks
+from aiod_napari.widget_classes import MainWidget
 
 
 class Postprocess(MainWidget):

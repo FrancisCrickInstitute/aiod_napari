@@ -1,14 +1,13 @@
 from functools import partial
 from typing import Optional
 
-import aiod_utils
 import napari
 import numpy as np
 import qtpy.QtCore
 from aiod_utils.preprocess import (
     get_all_preprocess_methods,
-    get_params_str,
     get_downsample_factor,
+    get_params_str,
     run_preprocess,
 )
 from napari.utils.notifications import show_error, show_info, show_warning
@@ -27,8 +26,8 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from ai_on_demand.utils import ConfirmDialog, format_tooltip
-from ai_on_demand.widget_classes import SubWidget
+from aiod_napari.utils import ConfirmDialog, format_tooltip
+from aiod_napari.widget_classes import SubWidget
 
 
 class PreprocessWidget(SubWidget):

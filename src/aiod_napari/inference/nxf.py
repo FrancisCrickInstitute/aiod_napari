@@ -34,13 +34,13 @@ from qtpy.QtWidgets import (
 import tqdm
 import yaml
 
-from ai_on_demand.utils import (
+from aiod_napari.utils import (
     InfoWindow,
     format_tooltip,
     get_img_dims,
     sanitise_name,
 )
-from ai_on_demand.widget_classes import SubWidget
+from aiod_napari.widget_classes import SubWidget
 import aiod_utils.preprocess
 from aiod_utils.stacks import generate_stack_indices, calc_num_stacks, Stack
 from aiod_utils.io import image_paths_to_csv

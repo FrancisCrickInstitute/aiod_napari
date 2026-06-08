@@ -1,5 +1,5 @@
-from ai_on_demand.inference.inference_widget import Inference
-from ai_on_demand.evaluation import Evaluation
+from aiod_napari.inference.inference_widget import Inference
+from aiod_napari.evaluation import Evaluation
 
 
 def test_inference(make_napari_viewer):

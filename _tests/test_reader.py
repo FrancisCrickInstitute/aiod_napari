@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from ai_on_demand.io import (
+from aiod_napari.io import (
     get_bioio_reader,
     bioio_reader,
     prepare_bioio_as_napari_layer,
@@ -61,7 +61,7 @@ def create_test_image(tmp_path, filename, data, file_format="tiff"):
 @pytest.fixture
 def example_data_path():
     """Fixture to provide path to example data if it exists."""
-    from ai_on_demand.utils import get_plugin_cache
+    from aiod_napari.utils import get_plugin_cache
 
     cache_dir, _ = get_plugin_cache()
     example_path = cache_dir / "em_20nm_z_40_145.tif"

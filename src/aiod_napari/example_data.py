@@ -2,7 +2,7 @@ from napari.utils.notifications import show_info
 import requests
 
 from aiod_utils.io import load_image_data
-from ai_on_demand.utils import get_plugin_cache
+from aiod_napari.utils import get_plugin_cache
 
 
 def load_example_data():

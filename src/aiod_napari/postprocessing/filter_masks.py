@@ -21,8 +21,8 @@ from qtpy.QtWidgets import (
 from skimage.measure._regionprops import COL_DTYPES
 from skimage.measure import regionprops
 
-from ai_on_demand.widget_classes import SubWidget
-from ai_on_demand.utils import format_tooltip
+from aiod_napari.widget_classes import SubWidget
+from aiod_napari.utils import format_tooltip
 
 
 class FilterMasks(SubWidget):

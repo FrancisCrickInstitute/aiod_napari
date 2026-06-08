@@ -1,5 +1,5 @@
 from aiod_registry import load_manifests
-from ai_on_demand.utils import load_settings
+from aiod_napari.utils import load_settings
 
 
 def activate_plugin(ctx):
@@ -10,9 +10,9 @@ def activate_plugin(ctx):
     def get_manifests():
         return all_manifests
 
-    ctx.register_command("ai-on-demand.get_manifests", get_manifests)
+    ctx.register_command("aiod-napari.get_manifests", get_manifests)
 
     def get_settings():
         return plugin_settings
 
-    ctx.register_command("ai-on-demand.get_settings", get_settings)
+    ctx.register_command("aiod-napari.get_settings", get_settings)

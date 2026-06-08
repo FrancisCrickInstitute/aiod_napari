@@ -17,9 +17,9 @@ from qtpy.QtWidgets import (
 )
 import pandas as pd
 
-from ai_on_demand.widget_classes import SubWidget
-from ai_on_demand.utils import format_tooltip, get_image_layer_path
-from ai_on_demand.io import prepare_bioio_as_napari_layer
+from aiod_napari.widget_classes import SubWidget
+from aiod_napari.utils import format_tooltip, get_image_layer_path
+from aiod_napari.io import prepare_bioio_as_napari_layer
 import aiod_utils.io as aiod_io
 
 

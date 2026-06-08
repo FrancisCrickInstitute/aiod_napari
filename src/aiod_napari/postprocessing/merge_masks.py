@@ -22,8 +22,8 @@ import pandas as pd
 import scipy.ndimage as ndi
 from skimage.transform import resize
 
-from ai_on_demand.widget_classes import SubWidget
-from ai_on_demand.utils import format_tooltip
+from aiod_napari.widget_classes import SubWidget
+from aiod_napari.utils import format_tooltip
 
 
 def _resize_to_match(arrays: list[np.ndarray]) -> list[np.ndarray]:

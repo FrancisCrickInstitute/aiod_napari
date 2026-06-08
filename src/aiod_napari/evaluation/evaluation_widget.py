@@ -21,9 +21,9 @@ from qtpy.QtWidgets import (
 from qtpy import QtGui
 import skimage.measure
 
-from ai_on_demand.widget_classes import MainWidget, SubWidget
-from ai_on_demand.utils import format_tooltip
-import ai_on_demand.evaluation.metrics as aiod_metrics
+from aiod_napari.widget_classes import MainWidget, SubWidget
+from aiod_napari.utils import format_tooltip
+import aiod_napari.evaluation.metrics as aiod_metrics
 
 
 class Evaluation(MainWidget):

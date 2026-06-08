@@ -22,8 +22,8 @@ from qtpy.QtWidgets import (
 )
 import yaml
 
-from ai_on_demand.widget_classes import SubWidget
-from ai_on_demand.utils import (
+from aiod_napari.widget_classes import SubWidget
+from aiod_napari.utils import (
     format_tooltip,
     sanitise_name,
     merge_dicts,
