@@ -12,15 +12,13 @@ from aiod_utils.io import extract_idxs_from_fname
 from aiod_utils.stacks import stack_to_shape
 from napari.qt.threading import thread_worker
 
-from aiod_napari.inference import (
-    ConfigWidget,
-    DataWidget,
-    ExportWidget,
-    ModelWidget,
-    NxfWidget,
-    PreprocessWidget,
-    TaskWidget,
-)
+from aiod_napari.inference.config_widget import ConfigWidget
+from aiod_napari.inference.data_selection import DataWidget
+from aiod_napari.inference.mask_export import ExportWidget
+from aiod_napari.inference.model_selection import ModelWidget
+from aiod_napari.inference.nxf import NxfWidget
+from aiod_napari.inference.preprocess import PreprocessWidget
+from aiod_napari.inference.tasks import TaskWidget
 from aiod_napari.utils import calc_param_hash
 from aiod_napari.widget_classes import MainWidget
 
