@@ -28,6 +28,9 @@ def load_example_data():
             return
     # Load the example data
     img = load_image_data(example_data_path)
+    # FIXME: Squeeze result to ensure no 4D issues before we make general n-dim fixes
+    if img.ndim == 4 and img.shape[0] == 1:
+        img = img.squeeze(0)
     # https://github.com/krentzd/napari-clemreg/blob/main/napari_clemreg/clemreg/sample_data.py#L24
     metadata = {
         "ImageDescription": "\nunit=micron\nspacing=0.02\n",
