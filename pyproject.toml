@@ -68,7 +68,7 @@ include-package-data = true
 where = ["src"]
 
 [tool.setuptools.package-data]
-"*" = ["*.yaml"]
+"*" = ["*.yaml", "*.conf"]
 
 
 [tool.setuptools.dynamic]
