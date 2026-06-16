@@ -1,1 +1,1 @@
-from .evaluation_widget import Evaluation
+from .evaluation_widget import Evaluation as Evaluation

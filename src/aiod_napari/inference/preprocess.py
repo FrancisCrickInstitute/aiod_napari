@@ -465,43 +465,6 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
         self._reset_preprocess()
 
 
-class ConfirmDialog(QDialog):
-    def __init__(
-        self,
-        parent=None,
-        title: str = "",
-        text: str = "",
-        informative_text: str = "",
-    ):
-        super().__init__(parent)
-        self.setWindowTitle(title)
-
-        layout = QVBoxLayout()
-
-        text_label = QLabel(text)
-        text_label.setWordWrap(True)
-        layout.addWidget(text_label)
-
-        if informative_text:
-            info_label = QLabel(informative_text)
-            info_label.setWordWrap(True)
-            layout.addWidget(info_label)
-
-        btn_widget = QWidget()
-        btn_layout = QGridLayout()
-        no_btn = QPushButton("No")
-        no_btn.clicked.connect(self.reject)
-        no_btn.setDefault(True)
-        yes_btn = QPushButton("Yes")
-        yes_btn.clicked.connect(self.accept)
-        btn_layout.addWidget(no_btn, 0, 0)
-        btn_layout.addWidget(yes_btn, 0, 1)
-        btn_widget.setLayout(btn_layout)
-        layout.addWidget(btn_widget)
-
-        self.setLayout(layout)
-
-
 class PreprocessSetWindow(QDialog):
     def __init__(self, parent=None, preprocess_txt: str = ""):
         super().__init__(parent)

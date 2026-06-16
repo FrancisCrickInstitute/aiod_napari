@@ -3,7 +3,6 @@ from functools import partial
 
 import napari
 import pandas as pd
-import skimage.measure
 from napari.layers import Image, Labels
 from napari.qt.threading import thread_worker
 from napari.utils.notifications import show_info
@@ -211,9 +210,9 @@ class EvalWidget(SubWidget):
         # - Use table version?
         # - Any other metrics to add?
         # - Do we really need the image layer and metrics?
-        img_metrics = {
-            "Region Props": skimage.measure.regionprops,
-        }
+        # img_metrics = {
+        #     "Region Props": skimage.measure.regionprops,
+        # }
 
         return row + (i // width) + 1
 

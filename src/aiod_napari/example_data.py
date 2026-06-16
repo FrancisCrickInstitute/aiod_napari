@@ -21,9 +21,9 @@ def load_example_data():
             with open(example_data_path, "wb") as f:
                 for chunk in req.iter_content(chunk_size=8192):
                     f.write(chunk)
-        except:
+        except Exception as e:  # noqa: BLE001
             show_info(
-                f"Failed to download example data to {example_data_path}. May be due to insufficient permissions, space, or network issues. Please try again later."
+                f"Failed to download example data to {example_data_path}. May be due to insufficient permissions, space, or network issues. Please try again later.\nError: {e}"
             )
             return
     # Load the example data

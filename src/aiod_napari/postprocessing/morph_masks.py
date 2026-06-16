@@ -190,17 +190,14 @@ for a single frame/slice to still be labelled the same.
         footprint_txt = self.morph_ops_footprint.currentText()
         # Check if correct footprint is selected for given layer
         # FIXME: They can apply 2D to 3D if they want!
-        if layer.data.ndim == 2:
-            if footprint_txt in ["cube", "ball"]:
-                show_error(
-                    f"Structure {footprint_txt} is not valid for 2D data. Please select a 2D structure (square/disk)."
-                )
-                return
+        if layer.data.ndim == 2 and footprint_txt in ["cube", "ball"]:
+            show_error(
+                f"Structure {footprint_txt} is not valid for 2D data. Please select a 2D structure (square/disk)."
+            )
+            return
         # Flag whether we need to loop over slices and apply 2D structure
-        apply_2d_in_3d = (
-            True
-            if footprint_txt in ["square", "disk"] and layer.data.ndim == 3
-            else False
+        apply_2d_in_3d = bool(
+            footprint_txt in ["square", "disk"] and layer.data.ndim == 3
         )
         # Get the operation to apply
         footprint_func = self.aiod_filter.filters[footprint_txt]
@@ -314,10 +311,7 @@ for a single frame/slice to still be labelled the same.
             )
             return
         layer = layers[0]
-        if self.label_cb.isChecked():
-            data = layer.data
-        else:
-            data = layer.data.copy()
+        data = layer.data if self.label_cb.isChecked() else layer.data.copy()
 
         if not isinstance(data, da.Array):
             orig = "numpy" if isinstance(data, np.ndarray) else "dask"

@@ -245,8 +245,8 @@ Images can also be opened, or dragged into napari as normal. The selection will 
         # Add the image to the overall dict
         self.image_path_dict[fpath.stem] = fpath
         layer_data = prepare_bioio_as_napari_layer(bioio_img, fpath)
-        for l in layer_data:
-            self.viewer.add_layer(Layer.create(*l))
+        for i in layer_data:
+            self.viewer.add_layer(Layer.create(*i))
 
     def _finished_loading(self):
         """Signify to user that all images have been loaded."""

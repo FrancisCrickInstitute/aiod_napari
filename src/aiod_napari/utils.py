@@ -20,6 +20,7 @@ from qtpy.QtWidgets import (
     QGridLayout,
     QLabel,
     QPushButton,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -116,7 +117,7 @@ def load_settings() -> dict:
 
 def get_image_layer_path(
     img_layer: Image, image_path_dict: dict | None = None
-) -> Path:
+) -> Path | None:
     # Skip this if the layer is a result of the Preprocess preview
     if img_layer.metadata.get("preprocess", None):
         return
@@ -131,12 +132,14 @@ def get_image_layer_path(
             img_path = None
     # If still None, check if already added
     if img_path is None:
-        if image_path_dict is not None:
-            if img_layer.name not in image_path_dict:
-                show_info(
-                    f"Cannot extract path for image layer {img_layer}. Please add manually using the buttons."
-                )
-                return
+        if (
+            image_path_dict is not None
+            and img_layer.name not in image_path_dict
+        ):
+            show_info(
+                f"Cannot extract path for image layer {img_layer}. Please add manually using the buttons."
+            )
+            return
     else:
         return Path(img_path)
 

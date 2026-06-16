@@ -197,22 +197,24 @@ Filter masks using various methods. Each function works on the currently selecte
             self.viewer.add_labels(labels, name=f"{layers[0].name}_filtered")
 
     def filter_boundary(self):
-        layers = self.parent._get_selected_layers()
-        data = layers[0].data
+        # TODO!
+        pass
+        # layers = self.parent._get_selected_layers()
+        # data = layers[0].data
 
-        """
-        Mask arg makes buffer_size get ignored.
-        So if we want to apply to 3D, and take into account tiling, we need to create the mask manually.
-        Just need to decide how to implement interface for this info, do we just copy the tiling options from before?
-        The ideal would be taking it directly from what created that labels layer...but that's a pain. Could use metadata, and just default to auto if not available. Maybe that's v2...
-        """
+        # """
+        # Mask arg makes buffer_size get ignored.
+        # So if we want to apply to 3D, and take into account tiling, we need to create the mask manually.
+        # Just need to decide how to implement interface for this info, do we just copy the tiling options from before?
+        # The ideal would be taking it directly from what created that labels layer...but that's a pain. Could use metadata, and just default to auto if not available. Maybe that's v2...
+        # """
 
-        if data.ndim == 2:
-            mask = None
-        # Ensure that the first and last frame are not considered boundary
-        # We just care about XY boundaries
-        elif data.ndim == 3:
-            mask = np.ones_like(data)
+        # if data.ndim == 2:
+        #     mask = None
+        # # Ensure that the first and last frame are not considered boundary
+        # # We just care about XY boundaries
+        # elif data.ndim == 3:
+        #     mask = np.ones_like(data)
 
     def filter_regionprops(self):
         layers = self.parent._get_selected_layers()

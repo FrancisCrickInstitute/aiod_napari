@@ -183,7 +183,7 @@ Merge masks using various methods. Note that all buttons will use whatever Label
         # Get the union of the masks
         # NOTE: Technically special case of mask_vote, but logical_or should be faster so maybe worth separating
         masks = _resize_to_match(
-            [self.parent._binarize_mask(l) for l in layers]
+            [self.parent._binarize_mask(i) for i in layers]
         )
         union = masks[0]
         for m in masks[1:]:
@@ -290,9 +290,7 @@ Merge masks using various methods. Note that all buttons will use whatever Label
         num_colours = 2**num_layers - 1
         # Now get the multipliers for each layer to ensure unique values
         multipliers = [1 << i for i in range(num_layers)]
-        layer_values = {
-            i: layer for i, layer in zip(multipliers, selected_layers)
-        }
+        layer_values = dict(zip(multipliers, selected_layers, strict=False))
         # Binarize each mask, multiply by its relevant power of 2, and sum to get combined mask
         res = np.sum(
             _resize_to_match(
@@ -344,7 +342,7 @@ Merge masks using various methods. Note that all buttons will use whatever Label
         # Add alpha channel to colourmap
         cmap = np.column_stack((cmap, np.ones((num_colours,))))
         # Convert to a label colour mapping
-        cmap = {k: v for k, v in zip(range(1, num_colours + 1), cmap)}
+        cmap = dict(zip(range(1, num_colours + 1), cmap, strict=False))
         # Add values for 0 (background) and None (missing)
         cmap[0] = np.array([0, 0, 0, 0])
         cmap[None] = np.array([0, 0, 0, 1])

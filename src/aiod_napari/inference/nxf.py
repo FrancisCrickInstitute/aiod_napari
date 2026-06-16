@@ -159,7 +159,7 @@ The profile determines where the pipeline is run.
         adv = config["advanced_options"]
         num_substacks = adv.get("num_substacks")
         tile_boxes = [self.tile_x, self.tile_y, self.tile_z]
-        for box, val in zip(tile_boxes, num_substacks.split(",")):
+        for box, val in zip(tile_boxes, num_substacks.split(","), strict=True):
             if val == "auto":
                 box.setValue(-1)
             else:
@@ -799,7 +799,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         # Store the image paths
         self.image_path_dict = self.parent.subwidgets["data"].image_path_dict
         # Ensure the pipeline is valid
-        assert self.pipeline in self.pipelines.keys(), (
+        assert self.pipeline in self.pipelines, (
             f"Pipeline {self.pipeline} not found!"
         )
         # Do the initial checks
@@ -809,7 +809,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             raise NotImplementedError(
                 f"Pipeline {self.pipeline} check function not implemented!"
             )
-        if self.all_loaded is False:
+        if self.all_loaded is False:  # noqa: SIM102
             # Check whether layers already existed when plugin started, and if all were loaded
             if not (
                 len(self.image_path_dict) > 0
@@ -1151,7 +1151,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         )
         cancel = prompt_window.addButton(QMessageBox.StandardButton.Cancel)
         prompt_window.setDefaultButton(cancel)
-        retval = prompt_window.exec()
+        _ = prompt_window.exec()
         # Check which button was pressed
         clicked_btn = prompt_window.clickedButton()
         if (

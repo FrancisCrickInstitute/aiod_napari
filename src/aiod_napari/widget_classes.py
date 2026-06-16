@@ -135,7 +135,6 @@ class MainWidget(QWidget):
         """
         Store the settings for the widget.
         """
-        pass
 
     def store_subwidget_settings(self):
         """
@@ -255,28 +254,24 @@ class SubWidget(QCollapsible):
         """
         Load settings for the subwidget.
         """
-        pass
 
     @abstractmethod
     def get_settings(self):
         """
         Get settings for the subwidget.
         """
-        pass
 
     @abstractmethod
     def load_config(self, config: dict):
         """
         Load a specific config and apply to the subwidget.
         """
-        pass
 
     @abstractmethod
     def get_config_params(self, params: dict):
         """
         Gets the config params for the widget
         """
-        pass
 
     def _make_separator(self):
         """

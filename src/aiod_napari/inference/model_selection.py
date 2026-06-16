@@ -667,7 +667,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         model_dict = {}
         # Extract params from model param widgets
         for orig_param, (param_name, sub_dict) in zip(
-            default_params, model_dict_orig.items()
+            default_params, model_dict_orig.items(), strict=True
         ):
             # Dicts maintain insertion order, so this should be fine, but double-check
             assert orig_param.name == param_name
