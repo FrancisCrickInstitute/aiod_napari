@@ -12,16 +12,17 @@ authors = [
     {name = "Jon Smith", email = "jon.smith@crick.ac.uk"}
 ]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Framework :: napari",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: BSD License",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Image Processing",
 ]
 requires-python = ">=3.11,<3.13"
@@ -39,8 +40,13 @@ dependencies = [
     "glasbey",
     "dask-image",
     "aiod_utils @ git+https://github.com/FrancisCrickInstitute/aiod_utils.git",
-    "aiod_registry @ git+https://github.com/FrancisCrickInstitute/AIoD-Model-Registry.git",
+    "aiod_registry @ git+https://github.com/FrancisCrickInstitute/aiod_registry.git",
 ]
+
+[project.urls]
+homepage = "https://github.com/FrancisCrickInstitute/aiod_napari"
+documentation = "https://franciscrickinstitute.github.io/aiod_docs/sections/front_ends/napari_plugin/"
+source = "https://github.com/FrancisCrickInstitute/aiod_napari"
 
 [project.optional-dependencies]
 testing = [
@@ -56,26 +62,28 @@ testing = [
 aiod-napari = "aiod_napari:napari.yaml"
 
 
-
 [build-system]
-requires = ["setuptools>=42.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
-include-package-data = true
+[tool.hatch.version]
+source = "vcs"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.metadata]
+allow-direct-references = true
 
-[tool.setuptools.package-data]
-"*" = ["*.yaml", "*.conf"]
+[tool.hatch.build]
+artifacts = [
+  "src/aiod_napari/resources/**",
+  "src/aiod_napari/Segment-Flow/profiles/*.conf",
+]
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/aiod_napari"]
+exclude = [
+  "src/aiod_napari/Segment-Flow",
+]
 
-[tool.setuptools.dynamic]
-version = {attr = "aiod_napari.__init__.__version__"}
-
-[tool.black]
-line-length = 79
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -103,7 +111,6 @@ lint.ignore = [
     "UP006", "UP007", # type annotation. As using magicgui require runtime type annotation then we disable this.
     "SIM117", # flake8-simplify - some of merged with statements are not looking great with black, reanble after drop python 3.9
 ]
-
 exclude = [
     ".bzr",
     ".direnv",
@@ -124,6 +131,7 @@ exclude = [
     "venv",
     "*vendored*",
     "*_vendor*",
+    "src/aiod_napari/Segment-Flow",
 ]
 
 fix = true

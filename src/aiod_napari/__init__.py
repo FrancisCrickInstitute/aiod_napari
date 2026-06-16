@@ -1,5 +1,6 @@
-__version__ = "0.0.1"
+from importlib.metadata import PackageNotFoundError, version
 
-from .inference.inference_widget import Inference
-
-__all__ = "Inference"
+try:
+    __version__ = version("aiod-napari")
+except PackageNotFoundError:
+    __version__ = "unknown"
