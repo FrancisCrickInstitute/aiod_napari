@@ -404,7 +404,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             param_values = model_param.value
             # Widget added depends on the input
             # Channel selector -> image-aware ComboBox
-            if getattr(model_param, "type", None) == "channel":
+            if getattr(model_param, "param_type", None) == "channel":
                 param_val_widget = QComboBox()
                 param_val_widget.setProperty("param_type", "channel")
                 ch_start = model_param.channel_start
