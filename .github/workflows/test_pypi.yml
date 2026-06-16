@@ -3,6 +3,9 @@ name: "Publish to TestPyPI"
 on:
   workflow_dispatch:  # manual trigger only
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build distribution
@@ -48,6 +51,7 @@ jobs:
       name: testpypi
       url: https://test.pypi.org/p/aiod-napari
     permissions:
+      contents: read
       id-token: write  # required for OIDC trusted publishing
     steps:
       - name: Download dist artifacts
