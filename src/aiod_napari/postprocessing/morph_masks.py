@@ -1,5 +1,3 @@
-from typing import Optional
-
 import dask.array as da
 import dask_image.ndmeasure as dask_ndi
 import dask_image.ndmorph as dask_morph
@@ -41,7 +39,7 @@ class MorphMasks(SubWidget):
     def __init__(
         self,
         viewer: napari.Viewer,
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
         layout: QLayout = QGridLayout,
         **kwargs,
     ):
@@ -56,7 +54,7 @@ Morph masks using various methods. Each function works on the currently selected
             **kwargs,
         )
 
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self, variant: str | None = None):
         self.morph_ops_box = self._make_groupbox("Morphological Ops")
         layout = self.morph_ops_box.layout()
         self.morph_ops_lbl = QLabel("Operation to apply:")

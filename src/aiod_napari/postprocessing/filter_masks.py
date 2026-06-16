@@ -1,5 +1,4 @@
 import operator
-from typing import Optional
 
 import napari
 import numpy as np
@@ -45,7 +44,7 @@ class FilterMasks(SubWidget):
     def __init__(
         self,
         viewer: napari.Viewer,
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
         layout: QLayout = QGridLayout,
         **kwargs,
     ):
@@ -88,7 +87,7 @@ Filter masks using various methods. Each function works on the currently selecte
         # NOTE: The vars within the event do not seem what we want, so grab directly
         self.filter_label_entry.setValue(event._sources[0].selected_label)
 
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self, variant: str | None = None):
         # TODO: Also connect this to delete shortcut for user speed
         self.filter_label_box = self._make_groupbox("Filter Label")
         layout = self.filter_label_box.layout()
@@ -175,7 +174,7 @@ Filter masks using various methods. Each function works on the currently selecte
         # TODO: Would be nice to have a pop-out table to show values of these properties for each label
         self.inner_layout.addWidget(self.regionprops_box, 1, 0)
 
-    def filter_label(self, layer: Optional[Labels] = None):
+    def filter_label(self, layer: Labels | None = None):
         layers = self.parent._get_selected_layers()
         if len(layers) > 1:
             show_error("Only one label layer can be selected for filtering!")

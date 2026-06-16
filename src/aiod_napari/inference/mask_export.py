@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 import aiod_utils.rle as aiod_rle
 import napari
@@ -28,7 +27,7 @@ class ExportWidget(SubWidget):
     def __init__(
         self,
         viewer: napari.Viewer,
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
         layout: QLayout = QGridLayout,
         **kwargs,
     ):
@@ -48,7 +47,7 @@ class ExportWidget(SubWidget):
             self.on_select_change
         )
 
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self, variant: str | None = None):
         self.export_masks_btn = QPushButton("Export all masks")
         self.export_masks_btn.clicked.connect(self.on_click_export)
         self.export_masks_btn.setToolTip(
@@ -136,7 +135,7 @@ class ExportWidget(SubWidget):
         return
 
     def get_mask_layers(
-        self, layer_list: Optional[napari.components.LayerList] = None
+        self, layer_list: napari.components.LayerList | None = None
     ) -> list[napari.layers.Labels]:
         """
         Return all the mask layers in the viewer.

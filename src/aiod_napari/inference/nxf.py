@@ -4,7 +4,7 @@ import shutil
 import subprocess
 from os import environ
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 import aiod_utils.preprocess
 import napari
@@ -54,7 +54,7 @@ class NxfWidget(SubWidget):
         self,
         viewer: napari.Viewer,
         pipeline: str,
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
         layout: QLayout = QGridLayout,
         **kwargs,
     ):
@@ -186,7 +186,7 @@ The profile determines where the pipeline is run.
             if idx != -1:
                 self.output_mask_type_box.setCurrentIndex(idx)
 
-    def setup_nxf_dir_cmd(self, base_dir: Optional[Path] = None):
+    def setup_nxf_dir_cmd(self, base_dir: Path | None = None):
         # Set the basepath to store masks/checkpoints etc. in
         if base_dir is not None:
             self.nxf_base_dir = base_dir
@@ -206,7 +206,7 @@ The profile determines where the pipeline is run.
         self.nxf_work_dir = self.nxf_base_dir / "work"
         self.nxf_work_dir.mkdir(parents=True, exist_ok=True)
 
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self, variant: str | None = None):
         # Create box for the cache settings
         self.cache_box = QGroupBox("Cache Settings")
         self.cache_box.setToolTip(
@@ -662,7 +662,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         if len(self.parent.subwidgets["data"].image_path_dict) == 0:
             raise ValueError("No data selected!")
 
-    def setup_inference(self, nxf_params: Optional[dict] = None):
+    def setup_inference(self, nxf_params: dict | None = None):
         """
         Runs the inference pipeline in Nextflow.
 
@@ -1216,9 +1216,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             raise RuntimeError(
                 "No valid output layer selected to get hash from!"
             )
-        with open(
-            self.nxf_store_dir / f"nxf_params_{full_hash}.yml", "r"
-        ) as f:
+        with open(self.nxf_store_dir / f"nxf_params_{full_hash}.yml") as f:
             params = yaml.safe_load(f)
 
         if not params:
@@ -1227,7 +1225,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             # Replace "model_config" value with the contents of the YAML file
             model_config_path = params.get("model_config")
             if model_config_path and Path(model_config_path).exists():
-                with open(model_config_path, "r") as f:
+                with open(model_config_path) as f:
                     params["model_config"] = yaml.safe_load(f)
             info = yaml.dump(params)
 

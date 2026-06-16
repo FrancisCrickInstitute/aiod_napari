@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 import napari
 import yaml
@@ -24,7 +23,7 @@ class ConfigWidget(SubWidget):
     def __init__(
         self,
         viewer: napari.Viewer,
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
         layout: QLayout = QGridLayout,
         **kwargs,
     ):
@@ -38,7 +37,7 @@ Load and save all parameters of the plugin to a config file, to easily reproduce
             **kwargs,
         )
 
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self, variant: str | None = None):
         """
         Create the box for loading and saving configurations.
         """
@@ -64,7 +63,7 @@ Load and save all parameters of the plugin to a config file, to easily reproduce
             self.save_dir = nxf_base_dir / "project_configs"
         else:
             self.save_dir, _ = get_plugin_cache()
-        self.save_dir_label = QLabel(f"Save directory:")
+        self.save_dir_label = QLabel("Save directory:")
         self.save_dir_text = QLabel(str(self.save_dir))
         self.save_dir_text.setWordWrap(True)
 
@@ -103,7 +102,7 @@ Load and save all parameters of the plugin to a config file, to easily reproduce
         )
         config_path = config_path_and_filter[0]
         if config_path:
-            with open(config_path, "r") as f:
+            with open(config_path) as f:
                 config_data = yaml.safe_load(f)
 
             if config_data:

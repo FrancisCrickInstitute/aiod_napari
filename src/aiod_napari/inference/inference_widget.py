@@ -1,7 +1,7 @@
 import copy
 import time
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 import aiod_utils.preprocess
 import aiod_utils.rle as aiod_rle
@@ -294,7 +294,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 self.viewer.layers.index(fpath.stem) + 1,
             )
 
-    def get_img_mask_preps(self, img_paths: Optional[list] = None):
+    def get_img_mask_preps(self, img_paths: list | None = None):
         if img_paths is None:
             img_paths = list(self.subwidgets["data"].image_path_dict.values())
         # Get the preprocessing options, if any
@@ -433,11 +433,11 @@ Run segmentation/inference on selected images using one of the available pre-tra
     def _get_mask_layer_name(
         self,
         stem: str,
-        extension: Optional[str] = None,
+        extension: str | None = None,
         executed: bool = False,
         include_hash: bool = True,
         truncate: bool = True,
-        preprocess_str: Optional[str] = None,
+        preprocess_str: str | None = None,
     ):
         # If executed, use the executed attributes in case the user has changed the selection since running the pipeline
         task_model_variant_name = self.subwidgets[
@@ -496,7 +496,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
         extension: str = "rle",
         executed=False,
         truncate=False,
-        preprocess_str: Optional[str] = None,
+        preprocess_str: str | None = None,
     ):
         mask_root = self._get_mask_layer_name(
             stem=stem,

@@ -56,7 +56,7 @@ Postprocess masks using various methods. This includes merging, splitting, and f
         for layer in layers:
             # We grab the max of the dtype as sometimes masks are e.g. [0, 255] for uint8
             dtype_max = np.iinfo(layer.data.dtype).max
-            res.append((layer.data.max() in [1, dtype_max]))
+            res.append(layer.data.max() in [1, dtype_max])
         # If all layers are binary, return True
         return all(res)
 

@@ -1,6 +1,5 @@
 from collections import defaultdict
 from functools import partial
-from typing import Optional
 
 import napari
 import pandas as pd
@@ -52,7 +51,7 @@ class EvalWidget(SubWidget):
     def __init__(
         self,
         viewer: napari.Viewer,
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
         layout: QLayout = QGridLayout,
         **kwargs,
     ):
@@ -68,7 +67,7 @@ class EvalWidget(SubWidget):
         self.viewer.layers.events.inserted.connect(self.add_layer)
         self.viewer.layers.events.removed.connect(self.remove_layer)
 
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self, variant: str | None = None):
         # Mask layer selection
         self.mask_layer_label = QLabel("Mask layer:")
         # Get all labels layers that were already present when the widget was created

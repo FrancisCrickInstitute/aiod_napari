@@ -1,10 +1,9 @@
 from collections import Counter
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 import aiod_utils.io as aiod_io
 import napari
-import numpy as np
 import pandas as pd
 import qtpy.QtCore
 from napari.layers import Image, Layer
@@ -31,7 +30,7 @@ class DataWidget(SubWidget):
     def __init__(
         self,
         viewer: napari.Viewer,
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
         layout: QLayout = QGridLayout,
         **kwargs,
     ):
@@ -52,7 +51,7 @@ Images can also be opened, or dragged into napari as normal. The selection will 
         self.viewer.layers.events.inserted.connect(self.on_layer_added)
         self.viewer.layers.events.removed.connect(self.on_layer_removed)
 
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self, variant: str | None = None):
         # Create empty counter to show image load progress
         self.load_img_counter = 0
         # Create container for image paths
@@ -183,9 +182,7 @@ Images can also be opened, or dragged into napari as normal. The selection will 
             self.update_file_count(paths=all_paths)
             self.view_images(imgs_to_load=all_paths)
 
-    def view_images(
-        self, imgs_to_load: Optional[list[Union[Path, str]]] = None
-    ):
+    def view_images(self, imgs_to_load: list[Union[Path, str]] | None = None):
         """
         Loads the selected images into napari for viewing (in separate threads).
         """
@@ -265,9 +262,7 @@ Images can also be opened, or dragged into napari as normal. The selection will 
         # Signalling the images
         self.images_loaded.emit()
 
-    def update_file_count(
-        self, paths: Optional[list[Union[str, Path]]] = None
-    ):
+    def update_file_count(self, paths: list[Union[str, Path]] | None = None):
         """
         Identify all the files in a given path, and return a count
         (broken down by extension)

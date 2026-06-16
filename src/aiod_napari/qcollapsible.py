@@ -1,6 +1,6 @@
 """Modified version from superqt: https://github.com/pyapp-kit/superqt"""
 
-from typing import Optional, Union
+from typing import Union
 
 from qtpy.QtCore import (
     QEasingCurve,
@@ -29,12 +29,12 @@ class QCollapsible(QFrame):
     def __init__(
         self,
         title: str = "",
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
         layout: QLayout = QVBoxLayout,
-        expandedIcon: Optional[Union[QIcon, str]] = "▼",
-        collapsedIcon: Optional[Union[QIcon, str]] = "▶",
+        expandedIcon: Union[QIcon, str] | None = "▼",
+        collapsedIcon: Union[QIcon, str] | None = "▶",
         duration: int = 300,
-        btn_style: Optional[str] = None,
+        btn_style: str | None = None,
         expanded: bool = False,
         margins: tuple = (2, 0, 0, 0),
     ):
@@ -112,9 +112,7 @@ class QCollapsible(QFrame):
         """Returns the icon used when the widget is expanded."""
         return self._expanded_icon
 
-    def setExpandedIcon(
-        self, icon: Optional[Union[QIcon, str]] = None
-    ) -> None:
+    def setExpandedIcon(self, icon: Union[QIcon, str] | None = None) -> None:
         """Set the icon on the toggle button when the widget is expanded."""
         if icon and isinstance(icon, QIcon):
             self._expanded_icon = icon
@@ -128,9 +126,7 @@ class QCollapsible(QFrame):
         """Returns the icon used when the widget is collapsed."""
         return self._collapsed_icon
 
-    def setCollapsedIcon(
-        self, icon: Optional[Union[QIcon, str]] = None
-    ) -> None:
+    def setCollapsedIcon(self, icon: Union[QIcon, str] | None = None) -> None:
         """Set the icon on the toggle button when the widget is collapsed."""
         if icon and isinstance(icon, QIcon):
             self._collapsed_icon = icon

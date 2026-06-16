@@ -1,7 +1,6 @@
 import string
 from abc import abstractmethod
 from pathlib import Path
-from typing import Optional
 
 import napari
 import qtpy.QtCore
@@ -32,7 +31,7 @@ class MainWidget(QWidget):
         self,
         napari_viewer: napari.Viewer,
         title: str,
-        tooltip: Optional[str] = None,
+        tooltip: str | None = None,
     ):
         super().__init__()
         pm = PluginManager.instance()
@@ -163,9 +162,9 @@ class SubWidget(QCollapsible):
         self,
         viewer: napari.Viewer,
         title: str,
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
         layout: QLayout = QVBoxLayout,
-        tooltip: Optional[str] = None,
+        tooltip: str | None = None,
         **kwargs,
     ):
         """
@@ -245,7 +244,7 @@ class SubWidget(QCollapsible):
         self.load_settings()
 
     @abstractmethod
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self, variant: str | None = None):
         """
         Create the box for the subwidget, i.e. all UI elements.
         """
@@ -296,7 +295,7 @@ class SubWidget(QCollapsible):
         )
         return separator
 
-    def _make_groupbox(self, title: str, tooltip: Optional[str] = None):
+    def _make_groupbox(self, title: str, tooltip: str | None = None):
         group_box = QGroupBox(title)
         if tooltip is not None:
             group_box.setToolTip(format_tooltip(tooltip))

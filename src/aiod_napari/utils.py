@@ -2,7 +2,7 @@ import hashlib
 import json
 import textwrap
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 import aiod_utils.io
 import yaml
@@ -32,7 +32,7 @@ def sanitise_name(name: str) -> str:
     return name.replace(" ", "-")
 
 
-def merge_dicts(d1: dict, d2: Optional[dict] = None) -> dict:
+def merge_dicts(d1: dict, d2: dict | None = None) -> dict:
     """
     Merge two dictionaries recursively. d2 will overwrite d1 where specified.
 
@@ -84,7 +84,7 @@ def calc_param_hash(d: dict) -> str:
 
 
 def load_config_file(config_path: Union[str, Path]) -> dict:
-    with open(Path(config_path), "r") as f:
+    with open(Path(config_path)) as f:
         if config_path.suffix == ".json":
             config_dict = json.load(f)
         elif config_path.suffix in (".yaml", ".yml"):
@@ -107,7 +107,7 @@ def load_settings() -> dict:
     _, settings_path = get_plugin_cache()
 
     if settings_path.exists():
-        with open(settings_path, "r") as f:
+        with open(settings_path) as f:
             settings = yaml.safe_load(f)
     else:
         settings = {}
@@ -115,7 +115,7 @@ def load_settings() -> dict:
 
 
 def get_image_layer_path(
-    img_layer: Image, image_path_dict: Optional[dict] = None
+    img_layer: Image, image_path_dict: dict | None = None
 ) -> Path:
     # Skip this if the layer is a result of the Preprocess preview
     if img_layer.metadata.get("preprocess", None):
@@ -142,8 +142,8 @@ def get_image_layer_path(
 
 
 def get_img_dims(
-    layer: Image, img_path: Optional[Path] = None, verbose: bool = True
-) -> tuple[int, int, int, Optional[int]]:
+    layer: Image, img_path: Path | None = None, verbose: bool = True
+) -> tuple[int, int, int, int | None]:
     # Hope image loaded with custom bioio loader, or that the original file can be read
     try:
         dims = (

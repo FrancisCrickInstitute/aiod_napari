@@ -5,7 +5,6 @@ import napari
 import yaml
 from napari._qt.qt_resources import QColoredSVGIcon
 from napari.utils.notifications import show_error
-from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (
     QCheckBox,
     QComboBox,

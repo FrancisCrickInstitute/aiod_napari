@@ -1,5 +1,3 @@
-from typing import Optional
-
 import napari
 from aiod_registry import TASK_NAMES
 from qtpy.QtWidgets import (
@@ -18,7 +16,7 @@ class TaskWidget(SubWidget):
     def __init__(
         self,
         viewer: napari.Viewer,
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
         layout: QLayout = QGridLayout,
         **kwargs,
     ):
@@ -31,7 +29,7 @@ class TaskWidget(SubWidget):
             **kwargs,
         )
 
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self, variant: str | None = None):
         """
         Create the box for selecting the task (i.e. organelle) to segment.
         """

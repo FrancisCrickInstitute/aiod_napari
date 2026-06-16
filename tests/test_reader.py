@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 
 from aiod_napari.io import (
-    get_bioio_reader,
     bioio_reader,
+    get_bioio_reader,
     prepare_bioio_as_napari_layer,
 )
 
@@ -43,7 +43,7 @@ def create_test_image(tmp_path, filename, data, file_format="tiff"):
 
         if data.ndim > 2:
             # Add metadata for multi-dimensional files
-            axes = {3: "ZYX", 4: "CZYX", 5: "TCZYX"}.get(data.ndim, None)
+            axes = {3: "ZYX", 4: "CZYX", 5: "TCZYX"}.get(data.ndim)
             with tifffile.TiffWriter(str(test_file)) as writer:
                 writer.write(data, metadata={"axes": axes} if axes else {})
         else:

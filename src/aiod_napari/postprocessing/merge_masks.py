@@ -1,5 +1,4 @@
 from collections import defaultdict
-from typing import Optional
 
 import glasbey
 import napari
@@ -46,7 +45,7 @@ class MergeMasks(SubWidget):
     def __init__(
         self,
         viewer: napari.Viewer,
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
         layout: QLayout = QGridLayout,
         **kwargs,
     ):
@@ -63,7 +62,7 @@ Merge masks using various methods. Note that all buttons will use whatever Label
 
         self.visualize_dict = None
 
-    def create_box(self, variant: Optional[str] = None):
+    def create_box(self, variant: str | None = None):
         # Union merge
         self.union_box = self._make_groupbox("Mask Union")
         layout = self.union_box.layout()
@@ -390,7 +389,7 @@ Merge masks using various methods. Note that all buttons will use whatever Label
 
 
 class VisualizeLegend(QDialog):
-    def __init__(self, parent=None, vis_dict: Optional[dict] = None):
+    def __init__(self, parent=None, vis_dict: dict | None = None):
         super().__init__(parent)
 
         self.setWindowTitle("Mask Overlap Legend")
