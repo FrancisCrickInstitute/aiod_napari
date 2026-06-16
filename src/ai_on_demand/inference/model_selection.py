@@ -407,20 +407,25 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             if getattr(model_param, "type", None) == "channel":
                 param_val_widget = QComboBox()
                 param_val_widget.setProperty("param_type", "channel")
-                channel_names = self._get_channel_names()
+                ch_start = model_param.channel_start
+                ch_start_label = model_param.channel_start_label
+                param_val_widget.setProperty("channel_start", ch_start)
+                param_val_widget.setProperty("channel_start_label", ch_start_label)
+                channel_names = self._get_channel_names(ch_start, ch_start_label)
                 param_val_widget.addItems(channel_names)
                 param_val_widget.setToolTip(
-                    "Select channel for processing.\n"
-                    "-1: Use original image as-is\n"
-                    "0 to N-1: Extract specific channel by index"
+                    f"Select channel for processing.\n"
+                    f"{ch_start} ({ch_start_label}): model-specific default\n"
+                    f"{ch_start + 1} onward: image channel by index"
                 )
-                # Set to the default from the manifest if it exists
-                # Manifest default is the channel integer (-1, 0, 1, ...)
-                # Map to dropdown index: -1 → 0, 0 → 1, 1 → 2, etc.
+                # Set to the default from the manifest if it exists.
+                # Map manifest integer to dropdown index: value - channel_start
+                # e.g. StarDist (channel_start=-1): value=0 → index 1
+                # e.g. Cellpose  (channel_start=0):  value=1 → index 1
                 param_values = model_param.value
                 default_idx = 0
                 if param_values is not None:
-                    default_idx = param_values + 1  # channel int -> dropdown index
+                    default_idx = param_values - ch_start  # channel int -> dropdown index
                 param_val_widget.setCurrentIndex(default_idx)
                 param_val_widget.currentIndexChanged.connect(self.on_param_changed)
                 self._channel_widgets.append(param_val_widget)
@@ -472,20 +477,32 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
     def on_param_changed(self):
         self.changed_defaults = True
 
-    def _get_channel_names(self) -> list[str]:
-        """Return channel labels derived from the first Image layer in the viewer.
+    def _get_channel_names(
+        self, channel_start: int = -1, channel_start_label: str = "original"
+    ) -> list[str]:
+        """Return channel labels for a channel-type parameter dropdown.
 
-        Returns -1 (original image) followed by 0-indexed channel selections.
-        For single-channel or no image: ["-1 (original)", "0"]
-        For multi-channel: ["-1 (original)", "0", "1", ...] or ["-1 (original)", "0: name", "1: name", ...]
+        The first item is the model-specific starting value (e.g. ``-1 (original)``
+        for index-based models, or ``0 (Grayscale)`` for Cellpose). Subsequent items
+        represent actual image channels numbered from ``channel_start + 1``.
+
+        Args:
+            channel_start: Lowest integer value in the dropdown (default -1).
+            channel_start_label: Human-readable label for the first item (default "original").
+
+        Returns:
+            For single-channel/no image: ["<start> (<label>)", "<start+1>"]
+            For multi-channel: ["<start> (<label>)", "<start+1>", "<start+2>", ...]
+            Named channels: ["<start> (<label>)", "<start+1>: name", ...]
         """
+        start_item = f"{channel_start} ({channel_start_label})"
         layers = [
             layer
             for layer in self.viewer.layers
             if isinstance(layer, napari.layers.Image)
         ]
         if not layers:
-            return ["-1 (original)", "0"]
+            return [start_item, str(channel_start + 1)]
         layer = layers[0]
         dims = layer.metadata.get("dimensions")
         n_channels = None
@@ -495,18 +512,27 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             elif layer.rgb and hasattr(dims, "S") and dims.S is not None and dims.S > 1:
                 n_channels = dims.S
         if n_channels is None or n_channels <= 1:
-            return ["-1 (original)", "0"]
+            return [start_item, str(channel_start + 1)]
         channel_names = layer.metadata.get("channel_names")
         if channel_names and len(channel_names) == n_channels:
-            return ["-1 (original)"] + [
-                f"{i}: {name}" for i, name in enumerate(channel_names)
+            return [start_item] + [
+                f"{channel_start + 1 + i}: {name}"
+                for i, name in enumerate(channel_names)
             ]
-        return ["-1 (original)"] + [str(i) for i in range(n_channels)]
+        return [start_item] + [
+            str(channel_start + 1 + i) for i in range(n_channels)
+        ]
 
     def _refresh_all_channel_dropdowns(self, event=None):
         """Repopulate all channel ComboBoxes when the layer list changes."""
-        channel_names = self._get_channel_names()
         for combo in self._channel_widgets:
+            ch_start = combo.property("channel_start")
+            ch_start_label = combo.property("channel_start_label")
+            if ch_start is None:
+                ch_start = -1
+            if ch_start_label is None:
+                ch_start_label = "original"
+            channel_names = self._get_channel_names(ch_start, ch_start_label)
             current_idx = combo.currentIndex()
             combo.blockSignals(True)
             combo.clear()
