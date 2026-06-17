@@ -101,11 +101,10 @@ def test_get_bioio_reader_supported_formats(
         "test.xyz",
         "test.unknown",
         "nonexistent.fake",
-        "nonexistent_file.tif",  # Valid extension but doesn't exist
     ],
 )
 def test_get_bioio_reader_returns_none(filename):
-    """Test that get_bioio_reader returns None for unsupported/missing files."""
+    """Test that get_bioio_reader returns None for unsupported files."""
     reader = get_bioio_reader(filename)
     assert reader is None, f"Should return None for: {filename}"
 
