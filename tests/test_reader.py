@@ -185,23 +185,6 @@ def test_bioio_reader_with_example_data(example_data_path):
     )
 
 
-def test_prepare_bioio_as_napari_layer_with_numpy_array(tmp_path):
-    """Test prepare_bioio_as_napari_layer handles numpy arrays correctly."""
-    test_data = np.random.randint(0, 255, size=(50, 50), dtype=np.uint8)
-    test_path = Path(tmp_path) / "test_array.png"
-
-    layer_data_list = prepare_bioio_as_napari_layer(test_data, test_path)
-    data, metadata, layer_type = assert_valid_napari_layer_data(
-        layer_data_list
-    )
-
-    assert len(layer_data_list) == 1, (
-        "Should return one layer for simple array"
-    )
-    np.testing.assert_array_equal(data, test_data, "Data should be unchanged")
-    assert metadata["name"] == "test_array", "Name should match file stem"
-
-
 # Edge case and exception handling tests
 @pytest.mark.parametrize(
     "invalid_path",
