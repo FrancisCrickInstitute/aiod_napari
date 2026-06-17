@@ -84,6 +84,8 @@ The profile determines where the pipeline is run.
         self.all_loaded = False
         # Dictionary to monitor progress of each image
         self.progress_dict = {}
+        # Total number of substacks; set properly by setup_inference()
+        self.total_substacks = 0
 
         self.nxf_cmd = None
         self.nxf_params = None
@@ -139,6 +141,8 @@ The profile determines where the pipeline is run.
                 "num_substacks": params.get("num_substacks"),
                 "overlap": params.get("overlap"),
                 "iou_threshold": params.get("iou_threshold"),
+                "output_format": params.get("output_format"),
+                "output_mask_type": params.get("output_mask_type"),
             },
         }
         return widget_config
@@ -170,6 +174,18 @@ The profile determines where the pipeline is run.
         self.overlap_z.setValue(overlap[2])
 
         self.iou_thresh.setValue(float(adv.get("iou_threshold")))
+
+        output_format = adv.get("output_format")
+        if output_format:
+            idx = self.output_format_box.findText(output_format)
+            if idx != -1:
+                self.output_format_box.setCurrentIndex(idx)
+
+        output_mask_type = adv.get("output_mask_type")
+        if output_mask_type:
+            idx = self.output_mask_type_box.findText(output_mask_type)
+            if idx != -1:
+                self.output_mask_type_box.setCurrentIndex(idx)
 
     def setup_nxf_dir_cmd(self, base_dir: Optional[Path] = None):
         # Set the basepath to store masks/checkpoints etc. in
@@ -486,6 +502,38 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         self.advanced_layout.addWidget(self.iou_thresh_label, 8, 0, 1, 1)
         self.advanced_layout.addWidget(self.iou_thresh, 8, 1, 1, 1)
 
+        # Add output format option
+        self.output_format_label = QLabel("Output format:")
+        self.output_format_label.setToolTip(
+            format_tooltip(
+                "Output format for the combined masks. 'rle' is compressed and used by AIoD; 'tiff' is a standard image format."
+            )
+        )
+        self.output_format_box = QComboBox()
+        self.output_format_box.addItems(["rle", "tiff"])
+        self.output_format_box.setCurrentText("rle")
+        self.output_format_box.setToolTip(
+            format_tooltip("Select the output format for the combined masks.")
+        )
+        self.advanced_layout.addWidget(self.output_format_label, 9, 0, 1, 1)
+        self.advanced_layout.addWidget(self.output_format_box, 9, 1, 1, 1)
+
+        # Add output mask type option
+        self.output_mask_type_label = QLabel("Output mask type:")
+        self.output_mask_type_label.setToolTip(
+            format_tooltip(
+                "Type of the output mask. 'instance' assigns a unique label to each object; 'binary' produces a foreground/background mask; 'auto' infers the type from the model output."
+            )
+        )
+        self.output_mask_type_box = QComboBox()
+        self.output_mask_type_box.addItems(["auto", "binary", "instance"])
+        self.output_mask_type_box.setCurrentText("auto")
+        self.output_mask_type_box.setToolTip(
+            format_tooltip("Select the output mask type.")
+        )
+        self.advanced_layout.addWidget(self.output_mask_type_label, 10, 0, 1, 1)
+        self.advanced_layout.addWidget(self.output_mask_type_box, 10, 1, 1, 1)
+
         # Run the function to update the tile size label to get initial value
         self.update_tile_size(val=None, clear_label=False)
 
@@ -505,6 +553,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         """
         # Create container for metadata
         dims = []
+        dtypes = []
         # Create container for knowing what images to track progress of
         self.progress_dict = {}
         # Counter for number of substacks (equivalent to number of submitted jobs!)
@@ -544,6 +593,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             # Get the number of slices, channels, height, and width
             H, W, num_slices, channels = get_img_dims(layer, img_path)
             dims.append({"Z": num_slices, "Y": H, "X": W, "C": channels})
+            dtypes.append(str(layer.metadata.get("dtype") or layer.data.dtype))
             # Initialise the progress dict
             self.progress_dict[img_path.stem] = 0
             # Need to take account for multiple runs due to preprocessing
@@ -560,14 +610,9 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
                     )
                 else:
                     output_shape = aiod_utils.preprocess.get_output_shape(
-                        d["prep_set"], input_shape=(num_slices, H, W)
+                        d["prep_set"], input_shape=Stack(height=H, width=W, depth=num_slices)
                     )
-                    final_shape = Stack(
-                        height=output_shape[1],
-                        width=output_shape[2],
-                        depth=output_shape[0],
-                        channels=channels,
-                    )
+                    final_shape = output_shape._replace(channels=channels)
                 # Calculate the number of substacks
                 num_substacks, eff_shape = calc_num_stacks(
                     image_shape=final_shape,
@@ -584,9 +629,10 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
                 total_substacks += num_substacks
         # Convert to a DataFrame and save
         image_paths_to_csv(
-            img_paths, self.img_list_fpath, dims, overwrite=True, index=False
+            img_paths, self.img_list_fpath, dims, dtypes, overwrite=True, index=False
         )
         # Store the total number of jobs
+        # NOTE: Used as an estimate to info the user of how many jobs will be submitted
         self.total_substacks = total_substacks
 
     def check_inference(self):
@@ -622,13 +668,17 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             return nxf_cmd, nxf_params  # FIXME: Returns diff number variables
         # Construct the Nextflow params if not given
         parent = self.parent
+        model_widget = parent.subwidgets["model"]
         # Get the model config path
-        config_path = parent.subwidgets["model"].get_model_config()
+        config_path = model_widget.get_model_config()
+        # Use the canonical slug for the variant to stay consistent with config file naming
+        task_model_version = (parent.executed_task, parent.executed_model, parent.executed_variant)
+        variant_slug = model_widget.version_slugs.get(task_model_version, sanitise_name(parent.executed_variant))
         # Construct the proper mask directory path
         self.mask_dir_path = (
             self.nxf_store_dir
             / f"{parent.executed_model}"
-            / f"{sanitise_name(parent.executed_variant)}_masks"
+            / f"{variant_slug}_masks"
         )
         # Construct the params to be given to Nextflow
         nxf_params = {}
@@ -636,7 +686,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         nxf_params["img_dir"] = str(self.img_list_fpath)
         nxf_params["model"] = parent.selected_model
         nxf_params["model_config"] = str(config_path)
-        nxf_params["model_type"] = sanitise_name(parent.executed_variant)
+        nxf_params["model_type"] = variant_slug
         nxf_params["task"] = parent.executed_task
         # Extract the tiles and overlap
         # Special text is ignored by default, so need to convert
@@ -662,6 +712,8 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             f"{round(self.overlap_x.value(), 2)},{round(self.overlap_y.value(), 2)},{round(self.overlap_z.value(), 2)}"
         )
         nxf_params["iou_threshold"] = round(self.iou_thresh.value(), 2)
+        nxf_params["output_format"] = self.output_format_box.currentText()
+        nxf_params["output_mask_type"] = self.output_mask_type_box.currentText()
         # Get the preprocessing options
         nxf_params["preprocess"] = parent.subwidgets[
             "preprocess"
@@ -680,12 +732,17 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             for layer_name in all_layer_names:
                 if layer_name in self.viewer.layers:
                     self.viewer.layers.remove(layer_name)
-            # Delete masks that match determined layer names (this'll remove partial and full masks, if present)
-            for mask_path in self.mask_dir_path.glob("*.rle"):
-                for layer_name in all_layer_names:
-                    if layer_name in mask_path.stem:
-                        mask_path.unlink()
-                        break
+            # Delete expected masks to avoid reload
+            # TODO: Switch fully to Nextflow for this, allowing resume to handle reload
+            for img_dict in parent.img_mask_info:
+                mask_root = parent._get_mask_layer_name(
+                    stem=img_dict["img_path"].stem,
+                    executed=True,
+                    truncate=False,
+                    preprocess_str=img_dict["preprocess_str"],
+                )
+                for mask_fpath in self.mask_dir_path.glob(f"{mask_root}*.rle"):
+                    mask_fpath.unlink()
         # Check if we already have all the masks
         else:
             proceed, img_paths, load_paths = self.parent.check_masks()
@@ -723,9 +780,9 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         # Store the image paths
         self.image_path_dict = self.parent.subwidgets["data"].image_path_dict
         # Ensure the pipeline is valid
-        assert (
-            self.pipeline in self.pipelines.keys()
-        ), f"Pipeline {self.pipeline} not found!"
+        assert self.pipeline in self.pipelines.keys(), (
+            f"Pipeline {self.pipeline} not found!"
+        )
         # Do the initial checks
         if self.pipelines[self.pipeline]["check"] is not None:
             self.pipelines[self.pipeline]["check"]()
@@ -852,6 +909,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         if hasattr(self.parent, "watcher_enabled"):
             print("Deactivating watcher...")
             self.parent.watcher_enabled = False
+        self.parent.remove_mask_layers()
         self.pipeline_failed.emit()
 
     def _remove_cancel_btn(self):
@@ -1112,6 +1170,8 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             selected = selected[0]
             # Look for hash crumb pattern in layer name
             crumb = re.split(r"[\W_]", selected.name)[-1]
+            if not crumb:
+                return ""
             file_matches = list(
                 self.nxf_store_dir.glob(f"nxf_params_{crumb}*.yml")
             )

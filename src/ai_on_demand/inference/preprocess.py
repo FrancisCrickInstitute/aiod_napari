@@ -1,33 +1,34 @@
 from functools import partial
 from typing import Optional
 
-import napari
-from napari.utils.notifications import show_error, show_info, show_warning
-import numpy as np
-from qtpy.QtWidgets import (
-    QWidget,
-    QLayout,
-    QVBoxLayout,
-    QCheckBox,
-    QComboBox,
-    QGridLayout,
-    QGroupBox,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QPlainTextEdit,
-    QDialog,
-)
-import qtpy.QtCore
-
-from ai_on_demand.widget_classes import SubWidget
-from ai_on_demand.utils import format_tooltip
-
 import aiod_utils
+import napari
+import numpy as np
+import qtpy.QtCore
 from aiod_utils.preprocess import (
     get_all_preprocess_methods,
     get_params_str,
+    get_downsample_factor,
+    run_preprocess,
 )
+from napari.utils.notifications import show_error, show_info, show_warning
+from qtpy.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QGridLayout,
+    QGroupBox,
+    QLabel,
+    QLayout,
+    QLineEdit,
+    QPlainTextEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
+
+from ai_on_demand.utils import ConfirmDialog, format_tooltip
+from ai_on_demand.widget_classes import SubWidget
 
 
 class PreprocessWidget(SubWidget):
@@ -48,7 +49,7 @@ class PreprocessWidget(SubWidget):
         self.preprocess_order = None
         self.init_order = "None selected!"
         # Store the order as a list for easier manipulation
-        self.order_list = None
+        self.order_list: None | list[str] = None
         # Container for multiple sets of preprocessing options
         self.preprocess_sets = []
 
@@ -143,9 +144,9 @@ Any preprocessing applied here is for visualization purposes only, only the orig
         self.btn_widget = QWidget()
         self.btn_layout = QGridLayout()
         # Add preview button
-        self.preview_btn = QPushButton("Preview")
+        self.preview_btn = QPushButton("Preview Slice")
         self.preview_btn.clicked.connect(
-            partial(self.on_click_run, preview=True)
+            partial(self.on_click_run, run_on_slice=True)
         )
         self.preview_btn.setToolTip(
             format_tooltip(
@@ -154,9 +155,9 @@ Any preprocessing applied here is for visualization purposes only, only the orig
         )
         self.btn_layout.addWidget(self.preview_btn, 0, 0, 1, 1)
         # Add a run button to apply the preprocessing entirely
-        self.prep_run_btn = QPushButton("Run")
+        self.prep_run_btn = QPushButton("Preview Stack")
         self.prep_run_btn.clicked.connect(
-            partial(self.on_click_run, preview=False)
+            partial(self.on_click_run, run_on_slice=False)
         )
         self.prep_run_btn.setToolTip(
             format_tooltip(
@@ -168,28 +169,24 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
             )
         )
         self.btn_layout.addWidget(self.prep_run_btn, 0, 1, 1, 1)
-        # Add a button for rescaling images
-        # Best for visually comparing downsampling with masks
-        self.rescale_btn = QPushButton("Rescale masks")
-        self.rescale_btn.clicked.connect(self.on_click_rescale)
-        self.rescale_btn.setToolTip(
-            format_tooltip(
-                """
-Rescale mask layers to raw data size (if downsampled). Helps visually compare with the original data.
-                """
-            )
-        )
-        self.btn_layout.addWidget(self.rescale_btn, 0, 2, 1, 1)
         # Add some draft buttons for preprocessing sets
         self.save_set_btn = QPushButton("Save preprocessing set")
         self.save_set_btn.clicked.connect(self.on_click_preprocess_save)
         self.btn_layout.addWidget(self.save_set_btn, 1, 0, 1, 1)
+        self.no_preprocess_btn = QPushButton("Add 'No preprocessing'")
+        self.no_preprocess_btn.clicked.connect(self.on_click_no_preprocess)
+        self.no_preprocess_btn.setToolTip(
+            format_tooltip(
+                "Add a 'No preprocessing' set to the saved sets, allowing the pipeline to run once with the raw image alongside any other saved preprocessing sets."
+            )
+        )
+        self.btn_layout.addWidget(self.no_preprocess_btn, 1, 1, 1, 1)
         self.view_sets_btn = QPushButton("View saved sets (0)")
         self.view_sets_btn.clicked.connect(self.on_click_preprocess_view)
-        self.btn_layout.addWidget(self.view_sets_btn, 1, 1, 1, 1)
+        self.btn_layout.addWidget(self.view_sets_btn, 2, 0, 1, 1)
         self.clear_sets_btn = QPushButton("Clear saved sets")
         self.clear_sets_btn.clicked.connect(self.on_click_preprocess_clear)
-        self.btn_layout.addWidget(self.clear_sets_btn, 1, 2, 1, 1)
+        self.btn_layout.addWidget(self.clear_sets_btn, 2, 1, 1, 1)
         # Set the layout for the widget
         self.btn_widget.setLayout(self.btn_layout)
         self.inner_layout.addWidget(self.btn_widget)
@@ -221,7 +218,7 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
         # Return the callback
         return cb
 
-    def on_click_run(self, preview: bool = False):
+    def on_click_run(self, run_on_slice: bool = False):
         # Callback for when the preview button is clicked
         # First check if we are able to preview
         if self.preprocess_order.text() == self.init_order:
@@ -234,6 +231,19 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
                 "No image layers available! Please load an image layer to preview the preprocessing effect on.",
             )
             return
+        if not run_on_slice:
+            confirm = ConfirmDialog(
+                parent=self,
+                title="Preview Stack",
+                text="This will load the entire selected image stack into memory and apply preprocessing.",
+                informative_text=(
+                    "For large images, this may consume significant memory or "
+                    "cause the application to become unresponsive.\n\n"
+                    "Are you sure you want to continue?"
+                ),
+            )
+            if not confirm.exec():
+                return
         # Extract the options from the UI elements
         options = self.extract_options()
         # Get the selected image
@@ -252,7 +262,7 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
         data = layer.data
         if data.ndim == 3:
             # Get the current slice
-            if preview:
+            if run_on_slice:
                 image = data[self.viewer.dims.current_step[0]]
                 # As the preview is for 2D only, remap 3D-specific options to 2D if needed
                 for option in options:
@@ -267,13 +277,6 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
                             show_info(
                                 f"Changed Filter footprint to {option['params']['footprint']} from {footprint} for 2D preview."
                             )
-                    elif option["name"] == "Downsample":
-                        blocksize = option["params"]["block_size"]
-                        if len(blocksize) == 3:
-                            option["params"]["block_size"] = blocksize[1:]
-                            show_info(
-                                f"Changed Downsample blocksize to {option['params']['block_size']} from {blocksize} for 2D preview."
-                            )
             else:
                 image = data
         else:
@@ -281,10 +284,10 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
             image = data
         # Extract blocksize for rescaling if downsampling used
         # This will be the corrected blocksize based on preview/run and input data shape
-        blocksize = aiod_utils.preprocess.get_downsample_factor(options)
+        blocksize = get_downsample_factor(options)
         # Apply the preprocessing and show the result
         # Convert to numpy array in case it's dask
-        image = aiod_utils.run_preprocess(np.array(image), options)
+        image = run_preprocess(np.array(image), options)
         prep_str = get_params_str(options)
         # Add metadata to skip file path checks in plugin
         self.viewer.add_image(
@@ -298,24 +301,7 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
         # Switch focus back to the original layer
         self.viewer.layers.selection.active = layer
 
-    def on_click_rescale(self):
-        # Gather all the layers on which preprocessing has been applied
-        mask_layers = [
-            layer
-            for layer in self.viewer.layers
-            if isinstance(layer, napari.layers.Labels)
-        ]
-        if len(mask_layers) == 0:
-            show_error(
-                "No mask layers found to rescale!",
-            )
-            return
-        for layer in mask_layers:
-            blocksize = layer.metadata.get("downsample_factor", None)
-            if blocksize is not None:
-                layer.scale = blocksize
-
-    def extract_options(self):
+    def extract_options(self) -> None | list[dict]:
         # Shortcut for when no postprocessing has been done
         if self.order_list is None:
             return
@@ -358,11 +344,15 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
 
     def get_all_options(self):
         if len(self.preprocess_sets) > 0:
+            # If every set is empty (no-op), treat as no preprocessing so the
+            # pipeline skips preprocessImage entirely.
+            if all(not s for s in self.preprocess_sets):
+                return None
             res = self.preprocess_sets
             extras = self.extract_options()
             if extras is not None:
                 show_warning(
-                    f"Additional preprocessing options found but not saved as new set while using sets; they will be ignored."
+                    "You've selected preprocessing options but not saved them while using sets; they will be ignored."
                 )
         else:
             # Need to extract options and wrap into a list to align with sets above
@@ -380,16 +370,27 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
         img_layers = [
             i for i in self.viewer.layers if isinstance(i, napari.layers.Image)
         ]
-        # Check each param set against each image layer
+        # Check each param set against each image layer;
+        # empty sets (no preprocessing) short-circuit inside run_preprocess.
         for layer in img_layers:
             for d in prep_params:
-                aiod_utils.preprocess.run_preprocess(
+                run_preprocess(
                     img=layer.data, methods=d, only_check=True
                 )
 
+    def on_click_no_preprocess(self):
+        """Save a 'No preprocessing' sentinel (empty list) as a preprocessing set."""
+        if any(not s for s in self.preprocess_sets):
+            show_warning("A 'No preprocessing' set already exists!")
+            return
+        self.preprocess_sets.append([])
+        self._reset_preprocess()
+        self._update_viewsets_btn()
+        show_info("Added a 'No preprocessing' set!")
+
     def on_click_preprocess_save(self):
         current_options = self.extract_options()
-        if len(current_options) == 0:
+        if current_options is None or len(current_options) == 0:
             show_error(
                 "No preprocessing methods selected! Please select at least one preprocessing method to save a set.",
             )
@@ -433,11 +434,14 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
             display_text = "No saved preprocessing sets!"
         else:
             for i, pp_set in enumerate(self.preprocess_sets):
-                display_text += f"Set {i+1}:\n"
-                for pp in pp_set:
-                    display_text += f"  {pp['name']}:\n"
-                    for param, value in pp["params"].items():
-                        display_text += f"    {param}: {value}\n"
+                display_text += f"Set {i + 1}:\n"
+                if not pp_set:
+                    display_text += "  No preprocessing\n"
+                else:
+                    for pp in pp_set:
+                        display_text += f"  {pp['name']}:\n"
+                        for param, value in pp["params"].items():
+                            display_text += f"    {param}: {value}\n"
                 display_text += "\n"
         # Create a dialog to display the text
         self.preprocess_set_popout = PreprocessSetWindow(
@@ -463,6 +467,43 @@ Rescale mask layers to raw data size (if downsampled). Helps visually compare wi
             self.preprocess_sets = []
         self._update_viewsets_btn()
         self._reset_preprocess()
+
+
+class ConfirmDialog(QDialog):
+    def __init__(
+        self,
+        parent=None,
+        title: str = "",
+        text: str = "",
+        informative_text: str = "",
+    ):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+
+        layout = QVBoxLayout()
+
+        text_label = QLabel(text)
+        text_label.setWordWrap(True)
+        layout.addWidget(text_label)
+
+        if informative_text:
+            info_label = QLabel(informative_text)
+            info_label.setWordWrap(True)
+            layout.addWidget(info_label)
+
+        btn_widget = QWidget()
+        btn_layout = QGridLayout()
+        no_btn = QPushButton("No")
+        no_btn.clicked.connect(self.reject)
+        no_btn.setDefault(True)
+        yes_btn = QPushButton("Yes")
+        yes_btn.clicked.connect(self.accept)
+        btn_layout.addWidget(no_btn, 0, 0)
+        btn_layout.addWidget(yes_btn, 0, 1)
+        btn_widget.setLayout(btn_layout)
+        layout.addWidget(btn_widget)
+
+        self.setLayout(layout)
 
 
 class PreprocessSetWindow(QDialog):

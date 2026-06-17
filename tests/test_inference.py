@@ -138,6 +138,7 @@ def inference_widget(make_napari_viewer_proxy, base_dir, monkeypatch):
     return InferenceFixture(viewer=viewer, widget=plugin_widget)
 
 
+@pytest.mark.slow
 class TestInferenceWorkflow:
     def test_full_inference_pass(
         self,

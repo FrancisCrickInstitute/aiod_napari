@@ -77,6 +77,12 @@ version = {attr = "ai_on_demand.__init__.__version__"}
 [tool.black]
 line-length = 79
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow/compute-intensive (run with --run-slow)",
+]
+
 [tool.ruff]
 line-length = 79
 lint.select = [

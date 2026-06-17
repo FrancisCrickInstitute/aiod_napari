@@ -68,6 +68,7 @@ def prepare_bioio_as_napari_layer(bioio_img, path):
             },
             "pixel_sizes": None,
             "dimensions": bioio_img.dims,
+            "dtype": bioio_img.dtype,
         },
     }
     with contextlib.suppress(NotImplementedError):
