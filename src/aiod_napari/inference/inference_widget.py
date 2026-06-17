@@ -236,8 +236,8 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     img_shape = img_layer.data.shape[1:]
                 elif ndim == 3:
                     # If we have a Z, no problem
-                    if ("bioio_dims" in img_metadata) and (
-                        img_metadata["bioio_dims"].Z > 1
+                    if ("dimensions" in img_metadata) and (
+                        img_metadata["dimensions"].Z > 1
                     ):
                         img_shape = self.viewer.layers[
                             f"{fpath.stem}"
