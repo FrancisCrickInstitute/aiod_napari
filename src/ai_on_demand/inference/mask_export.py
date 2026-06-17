@@ -101,7 +101,9 @@ class ExportWidget(SubWidget):
         """
         Binarises the given mask layer.
         """
-        return (mask_layer.data).astype(bool).astype(np.uint8) * 255
+        return (np.squeeze(mask_layer.data)).astype(bool).astype(
+            np.uint8
+        ) * 255
 
     def on_select_change(self, event):
         layers_selected = event.source
@@ -176,6 +178,10 @@ class ExportWidget(SubWidget):
                     fname += "_binarised"
                 else:
                     mask_data = mask_layer.data
+                # Squeeze out any singleton dimensions inserted for napari axis
+                # alignment (e.g. (Z,1,Y,X) → (Z,Y,X)) so exported files are
+                # spatial-only, matching the pipeline's original output format.
+                mask_data = np.squeeze(mask_data)
                 # Get the extension & add to fname
                 ext = (
                     self.export_format_dropdown.currentText()
