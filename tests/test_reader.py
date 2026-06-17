@@ -165,7 +165,7 @@ def test_bioio_reader_metadata_structure(tmp_path):
     # Check for bioio-specific metadata when BioImage object was used
     if "metadata" in metadata and isinstance(metadata["metadata"], dict):
         inner_metadata = metadata["metadata"]
-        assert "bioio_dims" in inner_metadata, "Should have bioio_dims"
+        assert "bioio_metadata" in inner_metadata, "Should have bioio_metadata"
         assert "pixel_sizes" in inner_metadata, "Should have pixel_sizes"
 
 
