@@ -56,9 +56,7 @@ Load and save all parameters of the plugin to a config file, to easily reproduce
             placeholderText="e.g. project_config_YYYY-MM-DDTHH:MM"
         )
 
-        nxf_base_dir = getattr(
-            self.parent.subwidgets.get("nxf"), "nxf_base_dir", None
-        )
+        nxf_base_dir = getattr(self.parent.subwidgets.get("nxf"), "nxf_base_dir", None)
         if nxf_base_dir:
             self.save_dir = nxf_base_dir / "project_configs"
         else:
@@ -76,9 +74,7 @@ Load and save all parameters of the plugin to a config file, to easily reproduce
         self.save_config_button = QPushButton("Save Config")
         self.save_config_button.setDisabled(True)
         self.save_config_button.setToolTip(
-            format_tooltip(
-                "Saving becomes available after running pipeline once"
-            )
+            format_tooltip("Saving becomes available after running pipeline once")
         )
         self.save_config_button.clicked.connect(self.on_save_config)
 
@@ -126,6 +122,8 @@ Load and save all parameters of the plugin to a config file, to easily reproduce
     def on_save_config(self):
         config_name = self.config_name_input.text().strip()
         if not config_name:
-            config_name = f"project_config_{datetime.now().isoformat(timespec='minutes')}"
+            config_name = (
+                f"project_config_{datetime.now().isoformat(timespec='minutes')}"
+            )
 
         self.parent.store_config(self.save_dir, config_name)

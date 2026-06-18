@@ -92,9 +92,7 @@ def load_config_file(config_path: Union[str, Path]) -> dict:
         elif config_path.suffix in (".yaml", ".yml"):
             config_dict = yaml.safe_load(f)
         else:
-            raise ValueError(
-                f"Config file (path: {config_path}) is not JSON or YAML!"
-            )
+            raise ValueError(f"Config file (path: {config_path}) is not JSON or YAML!")
     return config_dict
 
 
@@ -133,10 +131,7 @@ def get_image_layer_path(
             img_path = None
     # If still None, check if already added
     if img_path is None:
-        if (
-            image_path_dict is not None
-            and img_layer.name not in image_path_dict
-        ):
+        if image_path_dict is not None and img_layer.name not in image_path_dict:
             show_info(
                 f"Cannot extract path for image layer {img_layer}. Please add manually using the buttons."
             )
@@ -152,9 +147,7 @@ def get_img_dims(
     try:
         dims = (
             layer.metadata.get("dimensions")
-            or aiod_utils.io.load_image(
-                img_path or get_image_layer_path(layer)
-            ).dims
+            or aiod_utils.io.load_image(img_path or get_image_layer_path(layer)).dims
         )
     except TypeError:
         # layer path returned None so fall back on dimensions from layer data

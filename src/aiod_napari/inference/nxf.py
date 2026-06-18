@@ -222,9 +222,7 @@ The profile determines where the pipeline is run.
         self.nxf_dir_label.setToolTip(format_tooltip(base_dir_tooltip))
         self.nxf_dir_text = QLabel(str(self.nxf_base_dir))
         self.nxf_dir_text.setWordWrap(True)
-        self.nxf_dir_text.setToolTip(
-            format_tooltip("The selected base directory.")
-        )
+        self.nxf_dir_text.setToolTip(format_tooltip("The selected base directory."))
         self.nxf_dir_text.setMaximumWidth(400)
         # Button to change the base directory
         self.nxf_dir_btn = QPushButton("Change")
@@ -280,13 +278,9 @@ Note that 'opening' won't do anything, this is just to see what files are presen
         avail_confs = [str(i.stem) for i in config_dir.glob("*.conf")]
         avail_confs.sort()
         if len(avail_confs) == 0:
-            raise FileNotFoundError(
-                f"No Nextflow profiles found in {config_dir}!"
-            )
+            raise FileNotFoundError(f"No Nextflow profiles found in {config_dir}!")
         self.nxf_profile_box.addItems(avail_confs)
-        self.nxf_profile_box.setFocusPolicy(
-            qtpy.QtCore.Qt.FocusPolicy.StrongFocus
-        )
+        self.nxf_profile_box.setFocusPolicy(qtpy.QtCore.Qt.FocusPolicy.StrongFocus)
         self.pipeline_layout.addWidget(self.nxf_profile_label, 0, 0)
         self.pipeline_layout.addWidget(self.nxf_profile_box, 0, 1)
 
@@ -379,9 +373,7 @@ View the parameters used for the currently selected output.
             )
         )
         self.display_params_button.clicked.connect(self.on_display_params)
-        self.config_ready.connect(
-            lambda: self.display_params_button.setEnabled(True)
-        )
+        self.config_ready.connect(lambda: self.display_params_button.setEnabled(True))
         self.inner_layout.addWidget(self.display_params_button, 5, 1, 1, 1)
 
     def _add_advanced_options(self):
@@ -430,9 +422,7 @@ Number of tiles to split the image into in the Z dimension. 'auto' allows Nextfl
 
         self.overlap_x_label = QLabel("Overlap X:")
         self.overlap_x_label.setToolTip(
-            format_tooltip(
-                "Fraction of overlap between tiles in the X dimension."
-            )
+            format_tooltip("Fraction of overlap between tiles in the X dimension.")
         )
         self.overlap_x = QDoubleSpinBox(minimum=0.0, maximum=0.5, value=0.0)
         self.overlap_x.setSingleStep(0.05)
@@ -440,9 +430,7 @@ Number of tiles to split the image into in the Z dimension. 'auto' allows Nextfl
 
         self.overlap_y_label = QLabel("Overlap Y:")
         self.overlap_y_label.setToolTip(
-            format_tooltip(
-                "Fraction of overlap between tiles in the Y dimension."
-            )
+            format_tooltip("Fraction of overlap between tiles in the Y dimension.")
         )
         self.overlap_y = QDoubleSpinBox(minimum=0.0, maximum=0.5, value=0.0)
         self.overlap_y.setSingleStep(0.05)
@@ -450,9 +438,7 @@ Number of tiles to split the image into in the Z dimension. 'auto' allows Nextfl
 
         self.overlap_z_label = QLabel("Overlap Z:")
         self.overlap_z_label.setToolTip(
-            format_tooltip(
-                "Fraction of overlap between tiles in the Z dimension."
-            )
+            format_tooltip("Fraction of overlap between tiles in the Z dimension.")
         )
         self.overlap_z = QDoubleSpinBox(minimum=0.0, maximum=0.5, value=0.0)
         self.overlap_z.setSingleStep(0.05)
@@ -534,9 +520,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         self.output_mask_type_box.setToolTip(
             format_tooltip("Select the output mask type.")
         )
-        self.advanced_layout.addWidget(
-            self.output_mask_type_label, 10, 0, 1, 1
-        )
+        self.advanced_layout.addWidget(self.output_mask_type_label, 10, 0, 1, 1)
         self.advanced_layout.addWidget(self.output_mask_type_box, 10, 1, 1, 1)
 
         # Run the function to update the tile size label to get initial value
@@ -693,9 +677,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         )
         # Construct the proper mask directory path
         self.mask_dir_path = (
-            self.nxf_store_dir
-            / f"{parent.executed_model}"
-            / f"{variant_slug}_masks"
+            self.nxf_store_dir / f"{parent.executed_model}" / f"{variant_slug}_masks"
         )
         # Construct the params to be given to Nextflow
         nxf_params = {}
@@ -730,13 +712,9 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         )
         nxf_params["iou_threshold"] = round(self.iou_thresh.value(), 2)
         nxf_params["output_format"] = self.output_format_box.currentText()
-        nxf_params["output_mask_type"] = (
-            self.output_mask_type_box.currentText()
-        )
+        nxf_params["output_mask_type"] = self.output_mask_type_box.currentText()
         # Get the preprocessing options
-        nxf_params["preprocess"] = parent.subwidgets[
-            "preprocess"
-        ].get_all_options()
+        nxf_params["preprocess"] = parent.subwidgets["preprocess"].get_all_options()
         # Now have everything for the run hash
         parent.get_run_hash(nxf_params)
         # If overwriting, delete existing mask layers and files
@@ -799,9 +777,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         # Store the image paths
         self.image_path_dict = self.parent.subwidgets["data"].image_path_dict
         # Ensure the pipeline is valid
-        assert self.pipeline in self.pipelines, (
-            f"Pipeline {self.pipeline} not found!"
-        )
+        assert self.pipeline in self.pipelines, f"Pipeline {self.pipeline} not found!"
         # Do the initial checks
         if self.pipelines[self.pipeline]["check"] is not None:
             self.pipelines[self.pipeline]["check"]()
@@ -818,9 +794,9 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
                 show_info("Not all images have loaded, please wait...")
                 return
         # Get the pipeline-specific stuff
-        nxf_cmd, nxf_params, proceed, img_paths = self.pipelines[
-            self.pipeline
-        ]["setup"]()
+        nxf_cmd, nxf_params, proceed, img_paths = self.pipelines[self.pipeline][
+            "setup"
+        ]()
 
         # Don't run the pipeline if no green light given
         if not proceed:
@@ -839,9 +815,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         # Add the Nextflow parameter hash to the command
         nxf_params["param_hash"] = self.parent.run_hash
         # Save the Nextflow parameters to a YAML file
-        nxf_params_fpath = (
-            self.nxf_store_dir / f"nxf_params_{self.parent.run_hash}.yml"
-        )
+        nxf_params_fpath = self.nxf_store_dir / f"nxf_params_{self.parent.run_hash}.yml"
         with open(nxf_params_fpath, "w") as f:
             yaml.dump(nxf_params, f)
         # Add params-file to nxf command
@@ -895,9 +869,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         self.init_progress_bar()
         # Add a cancel pipeline button
         idx = self.inner_widget.layout().indexOf(self.nxf_run_btn)
-        row, col, rowspan, colspan = (
-            self.inner_widget.layout().getItemPosition(idx)
-        )
+        row, col, rowspan, colspan = self.inner_widget.layout().getItemPosition(idx)
         self.orig_colspan = colspan
         self.cancel_btn = QPushButton("Cancel Pipeline")
         self.cancel_btn.clicked.connect(self.cancel_pipeline)
@@ -1001,9 +973,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         # Remove mask layers that were added
         self.parent.remove_mask_layers()
 
-    def update_tile_size(
-        self, val: Union[int, float], clear_label: bool = False
-    ):
+    def update_tile_size(self, val: Union[int, float], clear_label: bool = False):
         """
         Callback for when the tile size spinboxes are updated.
         """
@@ -1045,18 +1015,14 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         else:
             layers = self.viewer.layers
         # Filter down to only Image layers
-        layers = [
-            layer for layer in layers if isinstance(layer, napari.layers.Image)
-        ]
+        layers = [layer for layer in layers if isinstance(layer, napari.layers.Image)]
         # Check if we have any image layers
         if len(layers) == 0 or clear_label:
             self.tile_size_label.setText("No image layers found!")
             return
         # Otherwise just take the first one
         H, W, num_slices, channels = get_img_dims(layers[0], verbose=False)
-        img_shape = Stack(
-            height=H, width=W, depth=num_slices, channels=channels
-        )
+        img_shape = Stack(height=H, width=W, depth=num_slices, channels=channels)
         # Get the actual stack size
         num_substacks, eff_shape = calc_num_stacks(
             image_shape=img_shape,
@@ -1109,9 +1075,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             if i.is_dir() and i.name.endswith("_masks")
         ]
         # Count the number of masks
-        num_masks = sum(
-            len(list(mask_dir.glob("*.rle"))) for mask_dir in mask_dirs
-        )
+        num_masks = sum(len(list(mask_dir.glob("*.rle"))) for mask_dir in mask_dirs)
         # Count number of configs
         num_configs = len(
             list((self.nxf_base_dir / "aiod_cache").glob("nxf_params_*.yml"))
@@ -1122,9 +1086,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             for i in (self.nxf_base_dir / "aiod_cache").rglob("*")
             if i.is_dir() and i.name == "checkpoints"
         ]
-        num_chkpts = sum(
-            len(list(chkpt_dir.glob("*"))) for chkpt_dir in chkpt_dirs
-        )
+        num_chkpts = sum(len(list(chkpt_dir.glob("*"))) for chkpt_dir in chkpt_dirs)
         # Create message for detailed text
         msg = (
             f"Your cache ({self.nxf_base_dir}) contains the following files:\n"
@@ -1154,10 +1116,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         _ = prompt_window.exec()
         # Check which button was pressed
         clicked_btn = prompt_window.clickedButton()
-        if (
-            clicked_btn == QMessageBox.StandardButton.Close
-            or clicked_btn == cancel
-        ):
+        if clicked_btn == QMessageBox.StandardButton.Close or clicked_btn == cancel:
             return
         elif clicked_btn == clear_models:
             # Delete all 'checkpoints' folders
@@ -1191,9 +1150,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             crumb = re.split(r"[\W_]", selected.name)[-1]
             if not crumb:
                 return ""
-            file_matches = list(
-                self.nxf_store_dir.glob(f"nxf_params_{crumb}*.yml")
-            )
+            file_matches = list(self.nxf_store_dir.glob(f"nxf_params_{crumb}*.yml"))
             if not file_matches:
                 # No matches, layer is not an aiod output
                 return ""
@@ -1213,9 +1170,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         full_hash = self.get_selected_layer_hash()
         if not full_hash:
             # This should not happen: layer selection event connection should only enable this button if hash is available
-            raise RuntimeError(
-                "No valid output layer selected to get hash from!"
-            )
+            raise RuntimeError("No valid output layer selected to get hash from!")
         with open(self.nxf_store_dir / f"nxf_params_{full_hash}.yml") as f:
             params = yaml.safe_load(f)
 

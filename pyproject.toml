@@ -92,7 +92,7 @@ markers = [
 ]
 
 [tool.ruff]
-line-length = 79
+line-length = 88
 lint.select = [
     "E", "F", "W", #flake8
     "UP", # pyupgrade

@@ -192,14 +192,10 @@ Images can also be opened, or dragged into napari as normal. The selection will 
         if imgs_to_load is None:
             # Check if there are images to load that haven't been already
             viewer_imgs = [
-                Path(i.name).stem
-                for i in self.viewer.layers
-                if isinstance(i, Image)
+                Path(i.name).stem for i in self.viewer.layers if isinstance(i, Image)
             ]
             imgs_to_load = [
-                v
-                for k, v in self.image_path_dict.items()
-                if k not in viewer_imgs
+                v for k, v in self.image_path_dict.items() if k not in viewer_imgs
             ]
         # If giving paths, double-check they aren't already loaded somehow
         elif imgs_to_load:
@@ -251,9 +247,7 @@ Images can also be opened, or dragged into napari as normal. The selection will 
     def _finished_loading(self):
         """Signify to user that all images have been loaded."""
         self.img_counts.setText(
-            self.img_counts.text().replace(
-                self.loading_txt, " (all images loaded)."
-            )
+            self.img_counts.text().replace(self.loading_txt, " (all images loaded).")
         )
         # Ensure Nextflow subwidget knows everything is loaded to extract metadata
         self.parent.subwidgets["nxf"].all_loaded = True
@@ -279,9 +273,7 @@ Images can also be opened, or dragged into napari as normal. The selection will 
             self.img_counts.setText(self.init_file_msg)
             return
         # Get all the extensions in the path
-        extension_counts = Counter(
-            [i.suffix for i in self.image_path_dict.values()]
-        )
+        extension_counts = Counter([i.suffix for i in self.image_path_dict.values()])
         # Sort by highest and get the suffixes and their counts
         ext_counts = extension_counts.most_common()
         if len(ext_counts) > 1:

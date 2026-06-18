@@ -59,9 +59,7 @@ def prepare_bioio_as_napari_layer(bioio_img, path):
     layer_attributes = {
         "name": path.stem,
         "rgb": aiod_utils.io.guess_rgba(bioio_img),
-        "scale": [
-            getattr(bioio_img.scale, d) or 1 for d in dim_order if d != "S"
-        ],
+        "scale": [getattr(bioio_img.scale, d) or 1 for d in dim_order if d != "S"],
         "metadata": {
             "path": path,
             "bioio_metadata": {
@@ -75,14 +73,10 @@ def prepare_bioio_as_napari_layer(bioio_img, path):
         },
     }
     with contextlib.suppress(NotImplementedError):
-        layer_attributes["metadata"]["bioio_metadata"]["ome"] = (
-            bioio_img.ome_metadata
-        )
+        layer_attributes["metadata"]["bioio_metadata"]["ome"] = bioio_img.ome_metadata
     # NOTE: https://github.com/bioio-devs/bioio/issues/25 issue for adding units
     with contextlib.suppress(NotImplementedError):
-        layer_attributes["metadata"]["pixel_sizes"] = (
-            bioio_img.physical_pixel_sizes
-        )
+        layer_attributes["metadata"]["pixel_sizes"] = bioio_img.physical_pixel_sizes
     # Load image in napari-friendly order (with RGB dimension last)
     layer_data = aiod_utils.io.load_image_data(
         bioio_img,

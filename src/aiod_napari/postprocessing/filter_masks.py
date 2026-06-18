@@ -65,23 +65,15 @@ Filter masks using various methods. Each function works on the currently selecte
         if self.viewer.layers:
             for layer in self.viewer.layers:
                 if isinstance(layer, Labels):
-                    layer.events.selected_label.connect(
-                        self._update_selected_label
-                    )
-                    layer.bind_key(
-                        KeyCode.Delete, self.filter_label, overwrite=True
-                    )
+                    layer.events.selected_label.connect(self._update_selected_label)
+                    layer.bind_key(KeyCode.Delete, self.filter_label, overwrite=True)
 
     def add_layer(self, event):
         if isinstance(event.value, Labels):
             # If a labels layer is added, connected it to our selected label event
-            event.value.events.selected_label.connect(
-                self._update_selected_label
-            )
+            event.value.events.selected_label.connect(self._update_selected_label)
             # Add a shortcut for deleting the currently selected label
-            event.value.bind_key(
-                KeyCode.Delete, self.filter_label, overwrite=True
-            )
+            event.value.bind_key(KeyCode.Delete, self.filter_label, overwrite=True)
 
     def _update_selected_label(self, event):
         # NOTE: The vars within the event do not seem what we want, so grab directly
@@ -230,9 +222,7 @@ Filter masks using various methods. Each function works on the currently selecte
         selected_prop = self.regionprops_dropdown.currentText()
         threshold = COL_DTYPES[selected_prop](self.regionprops_value.text())
         matching_labels = [
-            prop.label
-            for prop in props
-            if op(getattr(prop, selected_prop), threshold)
+            prop.label for prop in props if op(getattr(prop, selected_prop), threshold)
         ]
         if self.regionprops_cb.isChecked():
             # In-place, so we need to update and reinsert the layer to trigger update events

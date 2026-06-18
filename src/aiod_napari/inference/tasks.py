@@ -55,9 +55,7 @@ class TaskWidget(SubWidget):
             if task_btn.isChecked():
                 self.parent.selected_task = task_name
         # Update the model box for the selected task
-        self.parent.subwidgets["model"].update_model_box(
-            self.parent.selected_task
-        )
+        self.parent.subwidgets["model"].update_model_box(self.parent.selected_task)
 
     def load_config(self, config: str):
         task = config

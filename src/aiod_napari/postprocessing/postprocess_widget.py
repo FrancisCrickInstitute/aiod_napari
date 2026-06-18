@@ -38,9 +38,7 @@ Postprocess masks using various methods. This includes merging, splitting, and f
 
     def _get_selected_layers(self):
         # NOTE: We leave each function to error handle the length of the response (beyond 0)
-        layers = [
-            i for i in self.viewer.layers.selection if isinstance(i, Labels)
-        ]
+        layers = [i for i in self.viewer.layers.selection if isinstance(i, Labels)]
         layer_sizes = [layer.data.shape for layer in layers]
         if len(set(layer_sizes)) > 1:
             show_warning(

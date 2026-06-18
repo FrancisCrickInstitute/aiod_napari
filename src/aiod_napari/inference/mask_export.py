@@ -43,9 +43,7 @@ class ExportWidget(SubWidget):
         # Initialise the selected mask layers list
         self.selected_mask_layers = []
         # Connect viewer to callbacks on events
-        self.viewer.layers.selection.events.changed.connect(
-            self.on_select_change
-        )
+        self.viewer.layers.selection.events.changed.connect(self.on_select_change)
 
     def create_box(self, variant: str | None = None):
         self.export_masks_btn = QPushButton("Export all masks")
@@ -78,9 +76,7 @@ class ExportWidget(SubWidget):
         ]
         for i, (fmt, desc) in enumerate(export_options):
             self.export_format_dropdown.addItem(fmt)
-            self.export_format_dropdown.setItemData(
-                i, desc, qtpy.QtCore.Qt.ToolTipRole
-            )
+            self.export_format_dropdown.setItemData(i, desc, qtpy.QtCore.Qt.ToolTipRole)
         self.export_format_dropdown.setToolTip(
             format_tooltip(
                 "Select the format to export the masks in. Hover over each item for a description."
@@ -147,9 +143,7 @@ class ExportWidget(SubWidget):
             layer_list = self.viewer.layers
         # Select only the Labels layers
         valid_mask_layers = [
-            layer
-            for layer in layer_list
-            if isinstance(layer, napari.layers.Labels)
+            layer for layer in layer_list if isinstance(layer, napari.layers.Labels)
         ]
         return valid_mask_layers
 

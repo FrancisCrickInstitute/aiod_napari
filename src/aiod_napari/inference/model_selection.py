@@ -91,16 +91,14 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
                     if base_name not in self.versions_per_task[task_name]:
                         self.versions_per_task[task_name][base_name] = []
                     # Add this version, for this base model, under this task
-                    self.versions_per_task[task_name][base_name].append(
-                        version_name
-                    )
+                    self.versions_per_task[task_name][base_name].append(version_name)
                     # Store this model-version-task for easy access to params and config
-                    self.model_version_tasks[
-                        (task_name, base_name, version_name)
-                    ] = task
-                    self.version_slugs[
-                        (task_name, base_name, version_name)
-                    ] = version.slug
+                    self.model_version_tasks[(task_name, base_name, version_name)] = (
+                        task
+                    )
+                    self.version_slugs[(task_name, base_name, version_name)] = (
+                        version.slug
+                    )
 
     def create_box(self, variant: str | None = None):
         # TODO: This will have to become a variant for e.g. fine-tuning
@@ -128,9 +126,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         )
         self.model_version_dropdown = QComboBox()
         self.model_version_dropdown.addItems(["Select a model first!"])
-        self.model_version_dropdown.activated.connect(
-            self.on_model_version_select
-        )
+        self.model_version_dropdown.activated.connect(self.on_model_version_select)
         model_box_layout.addWidget(model_version_label, 1, 0)
         model_box_layout.addWidget(self.model_version_dropdown, 1, 1, 1, 2)
 
@@ -221,9 +217,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             self.parent.selected_model
         ]
         self.model_version_dropdown.addItems(model_versions)
-        self.parent.selected_variant = (
-            self.model_version_dropdown.currentText()
-        )
+        self.parent.selected_variant = self.model_version_dropdown.currentText()
         # Update the model params & config widgets for the selected model
         self.update_model_param_config(
             self.parent.selected_model, self.parent.selected_variant
@@ -231,9 +225,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
 
     def on_model_version_select(self):
         # Update tracker for selected model variant/version
-        self.parent.selected_variant = (
-            self.model_version_dropdown.currentText()
-        )
+        self.parent.selected_variant = self.model_version_dropdown.currentText()
         # Update the model params & config widgets for the selected model variant/version
         self.update_model_param_config(
             self.parent.selected_model, self.parent.selected_variant
@@ -282,9 +274,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         """
             )
         )
-        self.model_config_layout.addWidget(
-            self.model_config_load_btn, 0, 0, 1, 2
-        )
+        self.model_config_layout.addWidget(self.model_config_load_btn, 0, 0, 1, 2)
         # Add a label to display the selected config file (if any)
         self.model_config_label = QLabel("No model config file selected.")
         self.model_config_label.setWordWrap(True)
@@ -302,9 +292,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         self.model_param_widget = QWidget()
         self.model_param_layout = QVBoxLayout()
         # Add a button for resetting the config / UI params to defaults
-        self.model_config_clear_btn = QPushButton(
-            "Reset parameters to defaults"
-        )
+        self.model_config_clear_btn = QPushButton("Reset parameters to defaults")
         self.model_config_clear_btn.clicked.connect(self.reset_model_config)
         self.model_config_clear_btn.setToolTip(
             format_tooltip(
@@ -380,9 +368,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             ]
         # If no parameters, use the no_param widget
         elif param_list is None:
-            self.curr_model_param_widget = self.model_param_widgets_dict[
-                "no_param"
-            ]
+            self.curr_model_param_widget = self.model_param_widgets_dict["no_param"]
         # Otherwise, construct it
         else:
             self.curr_model_param_widget = self._create_model_params_widget(
@@ -430,14 +416,9 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
                 if model_param.default is not None:
                     default_idx = param_values.index(model_param.default)
                     param_val_widget.setCurrentIndex(default_idx)
-                param_val_widget.currentIndexChanged.connect(
-                    self.on_param_changed
-                )
+                param_val_widget.currentIndexChanged.connect(self.on_param_changed)
             # Int/float/str/None -> LineEdit
-            elif (
-                isinstance(param_values, (int, float, str))
-                or param_values is None
-            ):
+            elif isinstance(param_values, (int, float, str)) or param_values is None:
                 param_val_widget = QLineEdit()
                 param_val_widget.setText(str(param_values))
                 param_val_widget.textChanged.connect(self.on_param_changed)
@@ -485,10 +466,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         # Check that there is a model available for this task
         if task_name in self.versions_per_task:
             model_names = sorted(
-                [
-                    self.base_to_display[i]
-                    for i in self.versions_per_task[task_name]
-                ]
+                [self.base_to_display[i] for i in self.versions_per_task[task_name]]
             )
         else:
             model_names = [self.model_name_unavail]
@@ -540,9 +518,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
                 # Need to first load the project config
                 project_config = load_config_file(config_path)
                 # Then get the path to the model config contained therein
-                model_config_path = Path(
-                    project_config["model"]["model_config"]
-                )
+                model_config_path = Path(project_config["model"]["model_config"])
                 # Now try to load *that* config and populate the UI widgets
                 config = load_config_file(model_config_path)
                 self.fill_ui_from_config(config)
@@ -616,9 +592,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             else:
                 # No UI params: prefer user-loaded config, fall back to schema config
                 user_path = self.user_config_path.get(task_model_version)
-                model_dict = (
-                    load_config_file(user_path) if user_path else base_dict
-                )
+                model_dict = load_config_file(user_path) if user_path else base_dict
         else:
             if model_version.params is None:
                 # No schema and no UI params: must have a user-loaded config
@@ -649,9 +623,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             yaml.dump(model_dict, f)
         return model_config_fpath
 
-    def create_config_params(
-        self, task_model_version: tuple | None = None
-    ) -> dict:
+    def create_config_params(self, task_model_version: tuple | None = None) -> dict:
         """
         Construct the model config from the parameter widgets.
 
@@ -753,14 +725,10 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             task_model_version = self.get_task_model_variant(executed=False)
         if not all(task_model_version):
             raise ValueError("Cannot read UI: no model/task/version selected.")
-        gui_dict = self.create_config_params(
-            task_model_version=task_model_version
-        )
+        gui_dict = self.create_config_params(task_model_version=task_model_version)
         return merge_dicts(config, gui_dict)
 
-    def get_task_model_variant(
-        self, executed: bool = True
-    ) -> tuple[str, str, str]:
+    def get_task_model_variant(self, executed: bool = True) -> tuple[str, str, str]:
         if executed:
             task, model, version = (
                 self.parent.executed_task,
@@ -778,9 +746,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
     def get_task_model_variant_name(self, executed: bool = True) -> str:
         task, model, version = self.get_task_model_variant(executed)
         task_model_version = (task, model, version)
-        slug = self.version_slugs.get(
-            task_model_version, sanitise_name(version)
-        )
+        slug = self.version_slugs.get(task_model_version, sanitise_name(version))
         return f"{task}-{model}-{slug}"
 
     def load_config(self, config):
@@ -793,9 +759,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             raise ValueError(f"Model {model_name} not recognised.")
         model_index = self.model_dropdown.findText(model_display_name)
         if model_index == -1:
-            raise ValueError(
-                f"Model {model_name} not available for this task."
-            )
+            raise ValueError(f"Model {model_name} not available for this task.")
         self.model_dropdown.setCurrentIndex(model_index)
         self.on_model_select()
 
@@ -804,9 +768,7 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             item_text = self.model_version_dropdown.itemText(i)
             # Match by slug or exact name to handle saved configs using either form
             task_mv = (self.parent.selected_task, model_name, item_text)
-            item_slug = self.version_slugs.get(
-                task_mv, sanitise_name(item_text)
-            )
+            item_slug = self.version_slugs.get(task_mv, sanitise_name(item_text))
             if item_slug == model_version or item_text == model_version:
                 version_index = i
                 break

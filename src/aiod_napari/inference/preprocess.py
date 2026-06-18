@@ -143,9 +143,7 @@ Any preprocessing applied here is for visualization purposes only, only the orig
         self.btn_layout = QGridLayout()
         # Add preview button
         self.preview_btn = QPushButton("Preview Slice")
-        self.preview_btn.clicked.connect(
-            partial(self.on_click_run, run_on_slice=True)
-        )
+        self.preview_btn.clicked.connect(partial(self.on_click_run, run_on_slice=True))
         self.preview_btn.setToolTip(
             format_tooltip(
                 "Preview the effect of the selected preprocessing options on the currently selected image (or first image layer if none selected)."
@@ -245,9 +243,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
         # Extract the options from the UI elements
         options = self.extract_options()
         # Get the selected image
-        if isinstance(
-            self.viewer.layers.selection.active, napari.layers.Image
-        ):
+        if isinstance(self.viewer.layers.selection.active, napari.layers.Image):
             layer = self.viewer.layers.selection.active
         else:
             # NOTE: Use -1 as that's top of the list?
@@ -404,9 +400,7 @@ NOTE: The result is just for visualization, and will not be used in the Nextflow
         for name, widget_dict in self.preprocess_boxes.items():
             widget_dict["box"].setChecked(False)
             for param_name, widget in widget_dict["params"].items():
-                param_dict = self.preprocess_methods[name]["params"][
-                    param_name
-                ]
+                param_dict = self.preprocess_methods[name]["params"][param_name]
                 if isinstance(widget, QCheckBox):
                     widget.setChecked(False)
                 elif isinstance(widget, QLineEdit):

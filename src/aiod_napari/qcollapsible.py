@@ -102,9 +102,7 @@ class QCollapsible(QFrame):
         painter = QPainter(pixmap)
         color = self._toggle_btn.palette().color(QPalette.ColorRole.WindowText)
         painter.setPen(color)
-        painter.drawText(
-            QRect(0, 0, size, size), Qt.AlignmentFlag.AlignCenter, symbol
-        )
+        painter.drawText(QRect(0, 0, size, size), Qt.AlignmentFlag.AlignCenter, symbol)
         painter.end()
         return QIcon(pixmap)
 
@@ -204,9 +202,7 @@ class QCollapsible(QFrame):
         else:
             self._content.setMaximumHeight(_content_height if forward else 0)
         if emit:
-            self.toggled.emit(
-                direction == QPropertyAnimation.Direction.Forward
-            )
+            self.toggled.emit(direction == QPropertyAnimation.Direction.Forward)
 
     def _toggle(self) -> None:
         self.expand() if self.isExpanded() else self.collapse()

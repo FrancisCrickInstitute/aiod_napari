@@ -182,9 +182,7 @@ for a single frame/slice to still be labelled the same.
         # Get the currently selected layer
         layers = self.parent._get_selected_layers()
         if len(layers) > 1:
-            show_error(
-                "Please select only one Labels layer to apply the operation to."
-            )
+            show_error("Please select only one Labels layer to apply the operation to.")
             return
         layer = layers[0]
         footprint_txt = self.morph_ops_footprint.currentText()
@@ -217,14 +215,10 @@ for a single frame/slice to still be labelled the same.
         # Apply 2D structure to each slice
         if apply_2d_in_3d:
             for i in range(masks.shape[0]):
-                masks[i] = getattr(skimage.morphology, operation)(
-                    masks[i], footprint
-                )
+                masks[i] = getattr(skimage.morphology, operation)(masks[i], footprint)
         # Otherwise 2D to 2D or 3D to 3D in one go
         else:
-            masks = getattr(skimage.morphology, operation)(
-                masks, footprint, out=masks
-            )
+            masks = getattr(skimage.morphology, operation)(masks, footprint, out=masks)
         # If we adjusted a single label, reinsert into other labels
         if label != 0:
             # Multiply by label as it'll be binary
@@ -246,9 +240,7 @@ for a single frame/slice to still be labelled the same.
         # Get the currently selected layer
         layers = self.parent._get_selected_layers()
         if len(layers) > 1:
-            show_error(
-                "Please select only one Labels layer to apply the operation to."
-            )
+            show_error("Please select only one Labels layer to apply the operation to.")
             return
         layer = layers[0]
         if self.fill_hole_cb.isChecked():
@@ -280,9 +272,7 @@ for a single frame/slice to still be labelled the same.
         # Get the currently selected layer
         layers = self.parent._get_selected_layers()
         if len(layers) > 1:
-            show_error(
-                "Please select only one Labels layer to apply the operation to."
-            )
+            show_error("Please select only one Labels layer to apply the operation to.")
             return
         layer = layers[0]
         if self.binarize_cb.isChecked():
@@ -306,9 +296,7 @@ for a single frame/slice to still be labelled the same.
         # Get the currently selected layer
         layers = self.parent._get_selected_layers()
         if len(layers) > 1:
-            show_error(
-                "Please select only one Labels layer to apply the operation to."
-            )
+            show_error("Please select only one Labels layer to apply the operation to.")
             return
         layer = layers[0]
         data = layer.data if self.label_cb.isChecked() else layer.data.copy()
@@ -318,17 +306,15 @@ for a single frame/slice to still be labelled the same.
             data = da.from_array(data)
 
         def _simple_label(data):
-            return dask_ndi.label(
-                data, structure=ndi.generate_binary_structure(3, 1)
-            )[0]
+            return dask_ndi.label(data, structure=ndi.generate_binary_structure(3, 1))[
+                0
+            ]
 
         def _dilate_label(data):
             # Create a structure that dilates to the next slice/frame only
             dilation_structure = np.zeros((3, 3, 3), dtype=bool)
             dilation_structure[1:, 1, 1] = True
-            dilated = dask_morph.binary_dilation(
-                data, structure=dilation_structure
-            )
+            dilated = dask_morph.binary_dilation(data, structure=dilation_structure)
             # Now label the dilated data
             dilated = dask_ndi.label(
                 dilated, structure=ndi.generate_binary_structure(3, 1)

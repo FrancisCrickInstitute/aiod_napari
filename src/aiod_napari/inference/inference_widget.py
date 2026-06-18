@@ -102,11 +102,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
         hashed_params["model_hash"] = self.subwidgets["model"].model_param_hash
         # Get the advanced Nextflow parameters
         hashed_params.update(
-            {
-                k: v
-                for k, v in nxf_params.items()
-                if k in ["num_substacks", "overlap"]
-            }
+            {k: v for k, v in nxf_params.items() if k in ["num_substacks", "overlap"]}
         )
         # Get the preprocessing parameters
         hashed_params["preprocess"] = nxf_params["preprocess"]
@@ -179,9 +175,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 img_dict["preprocess_str"],
             )
             # Check if the mask file already exists
-            mask_fpath = self.subwidgets[
-                "nxf"
-            ].mask_dir_path / self._get_mask_name(
+            mask_fpath = self.subwidgets["nxf"].mask_dir_path / self._get_mask_name(
                 img_dict["img_path"].stem,
                 extension=self._get_output_format(),
                 executed=True,
@@ -201,10 +195,8 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 metadata = metadata["metadata"]
                 metadata["img_scale"] = img_layer.scale
                 # Check the filename if there's downsampling to ensure correct scaling
-                downsample_factor = (
-                    aiod_utils.preprocess.get_downsample_factor(
-                        methods=None, filename=mask_fpath.stem
-                    )
+                downsample_factor = aiod_utils.preprocess.get_downsample_factor(
+                    methods=None, filename=mask_fpath.stem
                 )
                 if downsample_factor is not None:
                     metadata["downsample_factor"] = downsample_factor
@@ -222,8 +214,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
                         visible=True,
                         opacity=0.5,
                         metadata=metadata,
-                        scale=img_layer.scale
-                        * metadata.get("downsample_factor", 1.0),
+                        scale=img_layer.scale * metadata.get("downsample_factor", 1.0),
                     )
             else:
                 # If the associated image is present, use its shape
@@ -239,34 +230,26 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     if ("dimensions" in img_metadata) and (
                         img_metadata["dimensions"].Z > 1
                     ):
-                        img_shape = self.viewer.layers[
-                            f"{fpath.stem}"
-                        ].data.shape
+                        img_shape = self.viewer.layers[f"{fpath.stem}"].data.shape
                     # Otherwise not loaded with bioio, so handle as Napari interprets
                     else:
                         # If RGB, then 2D RGB image
                         # NOTE: This does not handle multi-channel 2D images
                         if img_layer.rgb:
-                            img_shape = self.viewer.layers[
-                                f"{fpath.stem}"
-                            ].data.shape[1:]
+                            img_shape = self.viewer.layers[f"{fpath.stem}"].data.shape[
+                                1:
+                            ]
                         # Otherwise it's 3D single-channel image
                         else:
-                            img_shape = self.viewer.layers[
-                                f"{fpath.stem}"
-                            ].data.shape
+                            img_shape = self.viewer.layers[f"{fpath.stem}"].data.shape
                 # Otherwise take the 2D image shape
                 # NOTE: [:ndim] is to handle RGB images as Napari interprets
                 else:
-                    img_shape = self.viewer.layers[f"{fpath.stem}"].data.shape[
-                        :ndim
-                    ]
+                    img_shape = self.viewer.layers[f"{fpath.stem}"].data.shape[:ndim]
                 if prep_options is not None:
                     # Check if downsampling
-                    downsample_factor = (
-                        aiod_utils.preprocess.get_downsample_factor(
-                            prep_options
-                        )
+                    downsample_factor = aiod_utils.preprocess.get_downsample_factor(
+                        prep_options
                     )
                     if downsample_factor is not None:
                         img_metadata["downsample_factor"] = downsample_factor
@@ -395,9 +378,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
             # Loop and yield any changes infinitely while enabled
             while self.watcher_enabled:
                 # Get all files
-                current_files = list(
-                    self.subwidgets["nxf"].mask_dir_path.glob("*.rle")
-                )
+                current_files = list(self.subwidgets["nxf"].mask_dir_path.glob("*.rle"))
                 # Filter out any _all files, can occur when process is too fast (i.e. single image)
                 current_files = [
                     i for i in current_files if Path(i).stem[-4:] != "_all"
@@ -410,9 +391,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 ]
                 if set(self.mask_fpaths) != set(current_files):
                     # Get the new files only
-                    new_files = [
-                        i for i in current_files if i not in self.mask_fpaths
-                    ]
+                    new_files = [i for i in current_files if i not in self.mask_fpaths]
                     # Update file list and yield the difference
                     self.mask_fpaths = current_files
                     if new_files:
@@ -440,9 +419,9 @@ Run segmentation/inference on selected images using one of the available pre-tra
         preprocess_str: str | None = None,
     ):
         # If executed, use the executed attributes in case the user has changed the selection since running the pipeline
-        task_model_variant_name = self.subwidgets[
-            "model"
-        ].get_task_model_variant_name(executed)
+        task_model_variant_name = self.subwidgets["model"].get_task_model_variant_name(
+            executed
+        )
         if preprocess_str is not None:
             fname = f"{stem}_{preprocess_str}_masks_{task_model_variant_name}"
         else:
@@ -529,17 +508,15 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 mask_arr, _ = aiod_rle.decode(mask_arr)
             # NOTE: This is a temporary fix, and only occurs with fast models and a good GPU
             except FileNotFoundError:
-                print(
-                    f"File {f} not found, may have already been deleted. Skipping..."
-                )
+                print(f"File {f} not found, may have already been deleted. Skipping...")
                 continue
             except ValueError as e:
                 print(f)
                 print(e)
                 continue
             # Get indices from fname, modified if downsampled
-            start_x, end_x, start_y, end_y, start_z, end_z = (
-                extract_idxs_from_fname(fname=f)
+            start_x, end_x, start_y, end_y, start_z, end_z = extract_idxs_from_fname(
+                fname=f
             )
             # Need to get the prefix and then compare with expected layer names
             prefix, _ = f.stem.split("_masks_")
@@ -552,9 +529,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
             label_layer = self.viewer.layers[mask_layer_name]
             # On first mask for this layer, check if shape matches model output and recreate if not
             if not label_layer.visible and label_layer.ndim != mask_arr.ndim:
-                correct_shape = tuple(
-                    s for s in label_layer.data.shape if s > 1
-                )
+                correct_shape = tuple(s for s in label_layer.data.shape if s > 1)
                 layer_idx = self.viewer.layers.index(label_layer)
                 layer_meta = label_layer.metadata
                 self.viewer.layers.remove(label_layer)
@@ -576,16 +551,14 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 # TODO: Handle multi-channel images
                 # TODO: Check DHW orientation? Does Napari enforce this?
                 if label_layer.ndim == 3:
-                    label_layer.data[
-                        start_z:end_z, start_y:end_y, start_x:end_x
-                    ] = mask_arr
+                    label_layer.data[start_z:end_z, start_y:end_y, start_x:end_x] = (
+                        mask_arr
+                    )
                 else:
                     label_layer.data[start_y:end_y, start_x:end_x] = mask_arr
             label_layer.visible = True
             # Apply scale for downsampled masks, accounting for pixel size scaling if present
-            downsample_factor = label_layer.metadata.get(
-                "downsample_factor", None
-            )
+            downsample_factor = label_layer.metadata.get("downsample_factor", None)
             if downsample_factor is not None:
                 label_layer.scale = (
                     label_layer.metadata["img_scale"] * downsample_factor
@@ -594,9 +567,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
             idxs = []
             # Have to check due to possible delay in loading
             if img_name in self.viewer.layers:
-                img_idx = self.viewer.layers.index(
-                    self.viewer.layers[img_name]
-                )
+                img_idx = self.viewer.layers.index(self.viewer.layers[img_name])
                 idxs.append(img_idx)
             # We create the mask layer, so it will always exist
             label_idx = self.viewer.layers.index(label_layer)
@@ -643,9 +614,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
             label_layer.data = mask_arr
             label_layer.visible = True
             # Apply scale for downsampled masks, accounting for pixel size scaling if present
-            downsample_factor = label_layer.metadata.get(
-                "downsample_factor", None
-            )
+            downsample_factor = label_layer.metadata.get("downsample_factor", None)
             if downsample_factor is not None:
                 label_layer.scale = (
                     label_layer.metadata["img_scale"] * downsample_factor
@@ -653,11 +622,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
         # Now we'll sort all the layers, grouping together the image and mask layers for each image
         # Get the image layer names
         image_layers = sorted(
-            [
-                i
-                for i in self.viewer.layers
-                if isinstance(i, napari.layers.Image)
-            ],
+            [i for i in self.viewer.layers if isinstance(i, napari.layers.Image)],
             key=lambda x: x.name,
             reverse=True,  # Lowest alphabetically is at bottom of Napari layerlist
         )
@@ -680,8 +645,6 @@ Run segmentation/inference on selected images using one of the available pre-tra
             for mask_layer in mask_layers:
                 idx += 1
                 # Move the mask layer to the next position
-                self.viewer.layers.move(
-                    self.viewer.layers.index(mask_layer), idx
-                )
+                self.viewer.layers.move(self.viewer.layers.index(mask_layer), idx)
             # Increment the index for next image layer
             idx += 1

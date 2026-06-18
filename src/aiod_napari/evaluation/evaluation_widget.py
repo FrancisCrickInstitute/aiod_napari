@@ -35,9 +35,7 @@ Calculate various evaluation metrics (with or without ground truth) on selected 
         )
 
         # Register any subwidgets here
-        self.register_widget(
-            EvalWidget(viewer=self.viewer, parent=self, expanded=True)
-        )
+        self.register_widget(EvalWidget(viewer=self.viewer, parent=self, expanded=True))
 
     def get_run_hash(self):
         # NOTE: Currently no need to hash anything for evaluation, as Nextflow is not used
@@ -71,9 +69,7 @@ class EvalWidget(SubWidget):
         self.mask_layer_label = QLabel("Mask layer:")
         # Get all labels layers that were already present when the widget was created
         init_mask_layers = [
-            layer.name
-            for layer in self.viewer.layers
-            if isinstance(layer, Labels)
+            layer.name for layer in self.viewer.layers if isinstance(layer, Labels)
         ]
         self.mask_layer_dropdown = QComboBox()
         self.mask_layer_dropdown.setToolTip(
@@ -95,9 +91,7 @@ class EvalWidget(SubWidget):
         self.gt_layer_dropdown.addItems(init_mask_layers)
         self.gt_selected = QCheckBox("Ground truth selected?")
         self.gt_selected.setToolTip(
-            format_tooltip(
-                "Specify whether the other mask layer contains ground truth"
-            )
+            format_tooltip("Specify whether the other mask layer contains ground truth")
         )
         # Define behaviour on checking/unchecking box
         self.gt_selected.stateChanged.connect(self.on_gt_select)
@@ -108,9 +102,7 @@ class EvalWidget(SubWidget):
         # Image selection
         # Get all image layers that were already present when the widget was created
         init_img_layers = [
-            layer.name
-            for layer in self.viewer.layers
-            if isinstance(layer, Image)
+            layer.name for layer in self.viewer.layers if isinstance(layer, Image)
         ]
         self.image_layer_label = QLabel("Image layer:")
         self.image_layer_dropdown = QComboBox()
@@ -173,16 +165,12 @@ class EvalWidget(SubWidget):
             checkbox.setChecked(True)
             checkbox.setToolTip(format_tooltip(func.__doc__))
             self.base_metric_widgets[name] = checkbox
-            self.inner_layout.addWidget(
-                checkbox, row + (i // width), i % width, 1, 1
-            )
+            self.inner_layout.addWidget(checkbox, row + (i // width), i % width, 1, 1)
 
         # Update the row and increment for GT metrics
         row += (i // width) + 1
 
-        self.inner_layout.addWidget(
-            QLabel("Supervised metrics:"), row, 0, 1, width
-        )
+        self.inner_layout.addWidget(QLabel("Supervised metrics:"), row, 0, 1, width)
         row += 1
 
         # Define additional metrics if ground truth available
@@ -202,9 +190,7 @@ class EvalWidget(SubWidget):
                 checkbox.setChecked(False)
             checkbox.setToolTip(format_tooltip(func.__doc__))
             self.gt_metric_widgets[name] = checkbox
-            self.inner_layout.addWidget(
-                checkbox, row + (i // width), i % width, 1, 1
-            )
+            self.inner_layout.addWidget(checkbox, row + (i // width), i % width, 1, 1)
 
         # TODO:
         # - Use table version?
@@ -341,9 +327,9 @@ class EvalWidget(SubWidget):
         # Load previous results
         prev_results = pd.read_csv(fname)
         # Append
-        new_results = pd.concat(
-            [prev_results, self.df_results], axis=0
-        ).reset_index(drop=True)
+        new_results = pd.concat([prev_results, self.df_results], axis=0).reset_index(
+            drop=True
+        )
         # Save in same location
         new_results.to_csv(fname, index=False)
         # Pop-up

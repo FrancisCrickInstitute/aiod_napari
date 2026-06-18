@@ -100,18 +100,14 @@ Merge masks using various methods. Note that all buttons will use whatever Label
         self.visualize_sets_btn = QPushButton("Visualize")
         self.visualize_sets_btn.clicked.connect(self.visualize_sets)
         self.visualize_sets_btn.setToolTip(
-            format_tooltip(
-                "Visualize the differences between the selected mask sets."
-            )
+            format_tooltip("Visualize the differences between the selected mask sets.")
         )
         self.visualize_icon_btn = QPushButton("")
         self.visualize_icon_btn.setIcon(
             QColoredSVGIcon.from_resources("help").colored(theme="dark")
         )
         self.visualize_icon_btn.setFixedSize(25, 25)
-        self.visualize_icon_btn.setIconSize(
-            self.visualize_icon_btn.size() * 0.65
-        )
+        self.visualize_icon_btn.setIconSize(self.visualize_icon_btn.size() * 0.65)
         self.visualize_icon_btn.setToolTip(
             format_tooltip("Check colour legend for layer sources.")
         )
@@ -182,9 +178,7 @@ Merge masks using various methods. Note that all buttons will use whatever Label
             return
         # Get the union of the masks
         # NOTE: Technically special case of mask_vote, but logical_or should be faster so maybe worth separating
-        masks = _resize_to_match(
-            [self.parent._binarize_mask(i) for i in layers]
-        )
+        masks = _resize_to_match([self.parent._binarize_mask(i) for i in layers])
         union = masks[0]
         for m in masks[1:]:
             union = np.logical_or(union, m)
@@ -221,10 +215,7 @@ Merge masks using various methods. Note that all buttons will use whatever Label
         # NOTE: Threshold=1 is equivalent to a union, maybe link
         vote = np.sum(
             _resize_to_match(
-                [
-                    self.parent._binarize_mask(layer).astype(np.uint8)
-                    for layer in layers
-                ]
+                [self.parent._binarize_mask(layer).astype(np.uint8) for layer in layers]
             ),
             axis=0,
         )
@@ -269,9 +260,7 @@ Merge masks using various methods. Note that all buttons will use whatever Label
         num_layers = len(selected_layers)
         if len(selected_layers) >= 5:
             # Create a warning message
-            show_warning(
-                "Too many layers selected, visualization will be convoluted!"
-            )
+            show_warning("Too many layers selected, visualization will be convoluted!")
         elif len(selected_layers) == 0:
             show_error(
                 "No label layers selected. Please select at least two Labels layers."
@@ -329,9 +318,7 @@ Merge masks using various methods. Note that all buttons will use whatever Label
             if len(contrib_layers) == 1:
                 sources = selected_layers[contrib_layers[0]].name
             else:
-                sources = " + ".join(
-                    [selected_layers[i].name for i in contrib_layers]
-                )
+                sources = " + ".join([selected_layers[i].name for i in contrib_layers])
             features["source"].append(sources)
             self.visualize_dict[label] = {
                 "layers": sources,
@@ -357,9 +344,7 @@ Merge masks using various methods. Note that all buttons will use whatever Label
         )
 
     def show_visualize_legend(self):
-        self.legend_window = VisualizeLegend(
-            self, vis_dict=self.visualize_dict
-        )
+        self.legend_window = VisualizeLegend(self, vis_dict=self.visualize_dict)
         self.legend_window.show()
 
     def merge_overlap(self):
@@ -367,9 +352,7 @@ Merge masks using various methods. Note that all buttons will use whatever Label
         selected_layers = self.parent._get_selected_layers()
         num_layers = len(selected_layers)
         if num_layers >= 2:
-            show_error(
-                "Please select only one Labels layer to merge objects across Z."
-            )
+            show_error("Please select only one Labels layer to merge objects across Z.")
             return
         # Now label the selected layer
         # NOTE: scipy creates the structure we want by default
@@ -396,9 +379,7 @@ class VisualizeLegend(QDialog):
         self.setLayout(self.layout)
 
         if vis_dict is None or len(vis_dict) == 0:
-            self.layout.addWidget(
-                QLabel("No mask overlaps to visualize!"), 0, 0, 1, 2
-            )
+            self.layout.addWidget(QLabel("No mask overlaps to visualize!"), 0, 0, 1, 2)
             return
 
         for idx, (label, d) in enumerate(vis_dict.items()):
