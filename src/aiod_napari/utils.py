@@ -85,7 +85,8 @@ def calc_param_hash(d: dict) -> str:
 
 
 def load_config_file(config_path: Union[str, Path]) -> dict:
-    with open(Path(config_path)) as f:
+    config_path = Path(config_path)
+    with open(config_path) as f:
         if config_path.suffix == ".json":
             config_dict = json.load(f)
         elif config_path.suffix in (".yaml", ".yml"):
