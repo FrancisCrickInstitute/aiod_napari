@@ -1,6 +1,5 @@
 from collections import Counter
 from pathlib import Path
-from typing import Union
 
 import aiod_utils.io as aiod_io
 import napari
@@ -182,7 +181,7 @@ Images can also be opened, or dragged into napari as normal. The selection will 
             self.update_file_count(paths=all_paths)
             self.view_images(imgs_to_load=all_paths)
 
-    def view_images(self, imgs_to_load: list[Union[Path, str]] | None = None):
+    def view_images(self, imgs_to_load: list[Path | str] | None = None):
         """
         Loads the selected images into napari for viewing (in separate threads).
         """
@@ -256,7 +255,7 @@ Images can also be opened, or dragged into napari as normal. The selection will 
         # Signalling the images
         self.images_loaded.emit()
 
-    def update_file_count(self, paths: list[Union[str, Path]] | None = None):
+    def update_file_count(self, paths: list[str | Path] | None = None):
         """
         Identify all the files in a given path, and return a count
         (broken down by extension)

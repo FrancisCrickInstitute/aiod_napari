@@ -1,7 +1,6 @@
 import copy
 import time
 from pathlib import Path
-from typing import Union
 
 import aiod_utils.preprocess
 import aiod_utils.rle as aiod_rle
@@ -496,7 +495,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
         """
         self.viewer.dims.set_point(0, 0)
 
-    def update_masks(self, new_files: list[Union[str, Path]]):
+    def update_masks(self, new_files: list[str | Path]):
         """
         Update the masks in the napari Labels layers with the new masks found in the last scan.
         """

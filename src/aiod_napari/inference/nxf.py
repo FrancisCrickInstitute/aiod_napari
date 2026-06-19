@@ -4,7 +4,6 @@ import shutil
 import subprocess
 from os import environ
 from pathlib import Path
-from typing import Union
 
 import aiod_utils.preprocess
 import napari
@@ -973,7 +972,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         # Remove mask layers that were added
         self.parent.remove_mask_layers()
 
-    def update_tile_size(self, val: Union[int, float], clear_label: bool = False):
+    def update_tile_size(self, val: int | float, clear_label: bool = False):
         """
         Callback for when the tile size spinboxes are updated.
         """

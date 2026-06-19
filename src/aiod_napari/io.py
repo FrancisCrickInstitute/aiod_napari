@@ -1,7 +1,6 @@
 import contextlib
 from functools import partial
 from pathlib import Path
-from typing import Union
 
 import aiod_utils.io
 import aiod_utils.rle
@@ -11,7 +10,7 @@ from bioio_base.exceptions import UnsupportedFileFormatError
 from bioio_base.reader import Reader
 
 
-def get_bioio_reader(path: Union[str, Path]):
+def get_bioio_reader(path: str | Path):
     # Check if bioio can read this
     try:
         reader, plugin = aiod_utils.io._guess_reader(path), None
@@ -34,9 +33,7 @@ def get_bioio_reader(path: Union[str, Path]):
         return None
 
 
-def bioio_reader(
-    path: Union[str, Path], bioio_reader_class: Union[Reader, None] = None
-):
+def bioio_reader(path: str | Path, bioio_reader_class: Reader | None = None):
     # Load the image with utils loader, keeping defaults
     path = Path(path)
     bioio_img = aiod_utils.io.load_image(
@@ -95,7 +92,7 @@ def prepare_bioio_as_napari_layer(bioio_img, path):
     ]
 
 
-def get_rle_reader(path: Union[str, list[str]]):
+def get_rle_reader(path: str | list[str]):
     # If the path is a list, take the first element to get the extension
     if isinstance(path, list):
         path = path[0]
@@ -104,7 +101,7 @@ def get_rle_reader(path: Union[str, list[str]]):
     return rle_reader if path.suffix in aiod_utils.rle.EXTENSIONS else None
 
 
-def rle_reader(paths: Union[str, list[str]]):
+def rle_reader(paths: str | list[str]):
     if not isinstance(paths, list):
         paths = [paths]
     # Container for Napari layers

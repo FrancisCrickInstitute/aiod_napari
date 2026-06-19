@@ -2,7 +2,6 @@ import hashlib
 import json
 import textwrap
 from pathlib import Path
-from typing import Union
 
 import aiod_utils.io
 import yaml
@@ -84,7 +83,7 @@ def calc_param_hash(d: dict) -> str:
     return hashlib.md5(json.dumps(sorted_d).encode("utf-8")).hexdigest()
 
 
-def load_config_file(config_path: Union[str, Path]) -> dict:
+def load_config_file(config_path: str | Path) -> dict:
     config_path = Path(config_path)
     with open(config_path) as f:
         if config_path.suffix == ".json":

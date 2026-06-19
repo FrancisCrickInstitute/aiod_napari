@@ -1,7 +1,5 @@
 """Modified version from superqt: https://github.com/pyapp-kit/superqt"""
 
-from typing import Union
-
 from qtpy.QtCore import (
     QEasingCurve,
     QEvent,
@@ -31,8 +29,8 @@ class QCollapsible(QFrame):
         title: str = "",
         parent: QWidget | None = None,
         layout: QLayout = QVBoxLayout,
-        expandedIcon: Union[QIcon, str] | None = "▼",
-        collapsedIcon: Union[QIcon, str] | None = "▶",
+        expandedIcon: QIcon | str | None = "▼",
+        collapsedIcon: QIcon | str | None = "▶",
         duration: int = 300,
         btn_style: str | None = None,
         expanded: bool = False,
@@ -110,7 +108,7 @@ class QCollapsible(QFrame):
         """Returns the icon used when the widget is expanded."""
         return self._expanded_icon
 
-    def setExpandedIcon(self, icon: Union[QIcon, str] | None = None) -> None:
+    def setExpandedIcon(self, icon: QIcon | str | None = None) -> None:
         """Set the icon on the toggle button when the widget is expanded."""
         if icon and isinstance(icon, QIcon):
             self._expanded_icon = icon
@@ -124,7 +122,7 @@ class QCollapsible(QFrame):
         """Returns the icon used when the widget is collapsed."""
         return self._collapsed_icon
 
-    def setCollapsedIcon(self, icon: Union[QIcon, str] | None = None) -> None:
+    def setCollapsedIcon(self, icon: QIcon | str | None = None) -> None:
         """Set the icon on the toggle button when the widget is collapsed."""
         if icon and isinstance(icon, QIcon):
             self._collapsed_icon = icon
