@@ -84,6 +84,14 @@ exclude = [
   "src/aiod_napari/Segment-Flow",
 ]
 
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "src/aiod_napari/Segment-Flow",
+  ".github",
+  ".pre-commit-config.yaml",
+  "user_guide.md",
+  "developer_guide.md",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

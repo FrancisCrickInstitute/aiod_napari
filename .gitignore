@@ -40,13 +40,15 @@ pip-delete-this-directory.txt
 # Unit test / coverage reports
 htmlcov/
 .tox/
+.nox/
 .coverage
 .coverage.*
 .cache
 nosetests.xml
 coverage.xml
-*,cover
+*.cover
 .hypothesis/
+.pytest_cache/
 .napari_cache
 
 # Translations
