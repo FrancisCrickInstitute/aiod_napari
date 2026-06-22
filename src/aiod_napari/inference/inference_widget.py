@@ -603,11 +603,16 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     mask_layer_name = d["layer_name"]
                     img_name = d["img_path"].stem
                     break
+            else:
+                print(f"No matching layer found for mask file {f}, skipping...")
+                continue
             label_layer = self.viewer.layers[mask_layer_name]
             # Expand the spatial-only mask slice to match the image's full ndim
             # (e.g. (nz,ny,nx) → (nz,1,ny,nx) for a ZCYX image) so the
             # assignment index and the array shape are consistent.
-            _img_layer_ref = self.viewer.layers.get(img_name, None)
+            _img_layer_ref = (
+                self.viewer.layers[img_name] if img_name in self.viewer.layers else None  # noqa: SIM401
+            )
             _img_layer_meta = (
                 (_img_layer_ref.metadata or {}) if _img_layer_ref is not None else {}
             )
@@ -723,7 +728,11 @@ Run segmentation/inference on selected images using one of the available pre-tra
             # Expand to image ndim (e.g. ZYX → Z1YX for ZCYX) so napari aligns
             # the mask's Z axis with the image's Z axis rather than its C axis.
             _img_stem = img_dict["img_path"].stem
-            _img_layer_ref = self.viewer.layers.get(_img_stem, None)
+            _img_layer_ref = (
+                self.viewer.layers[_img_stem]  # noqa: SIM401
+                if _img_stem in self.viewer.layers
+                else None
+            )
             _img_layer_meta = (
                 (_img_layer_ref.metadata or {}) if _img_layer_ref is not None else {}
             )
