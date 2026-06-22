@@ -71,6 +71,8 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         self.versions_per_task = {}
         # Dict of model params for each model version, specific to each task
         self.model_version_tasks = {}
+        # Dict of version objects for each (task, model, version) key
+        self.model_versions = {}
         # Slug for each (task, model, version) key
         self.version_slugs = {}
 
@@ -328,6 +330,10 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         # Stores user-loaded config paths for models with no UI params,
         # keyed by (task, model, version) tuple
         self.user_config_path: dict[tuple, Path] = {}
+        # Track all channel QComboBoxes so they can be refreshed when layers change
+        self._channel_widgets: list[QComboBox] = []
+        self.viewer.layers.events.inserted.connect(self._refresh_all_channel_dropdowns)
+        self.viewer.layers.events.removed.connect(self._refresh_all_channel_dropdowns)
         # Disable showing widget until selected to view
         self.model_param_widget.setVisible(False)
         self.inner_layout.addWidget(self.model_param_widget)
@@ -400,8 +406,36 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             # Add the model parameter(s)
             param_values = model_param.value
             # Widget added depends on the input
+            # Channel selector -> image-aware ComboBox
+            if getattr(model_param, "param_type", None) == "channel":
+                param_val_widget = QComboBox()
+                param_val_widget.setProperty("param_type", "channel")
+                ch_start = model_param.channel_start
+                ch_start_label = model_param.channel_start_label
+                param_val_widget.setProperty("channel_start", ch_start)
+                param_val_widget.setProperty("channel_start_label", ch_start_label)
+                channel_names = self._get_channel_names(ch_start, ch_start_label)
+                param_val_widget.addItems(channel_names)
+                param_val_widget.setToolTip(
+                    f"Select channel for processing.\n"
+                    f"{ch_start} ({ch_start_label}): model-specific default\n"
+                    f"{ch_start + 1} onward: image channel by index"
+                )
+                # Set to the default from the manifest if it exists.
+                # Map manifest integer to dropdown index: value - channel_start
+                # e.g. StarDist (channel_start=-1): value=0 → index 1
+                # e.g. Cellpose  (channel_start=0):  value=1 → index 1
+                param_values = model_param.value
+                default_idx = 0
+                if param_values is not None:
+                    default_idx = (
+                        param_values - ch_start
+                    )  # channel int -> dropdown index
+                param_val_widget.setCurrentIndex(default_idx)
+                param_val_widget.currentIndexChanged.connect(self.on_param_changed)
+                self._channel_widgets.append(param_val_widget)
             # True/False -> Checkbox
-            if param_values is True or param_values is False:
+            elif param_values is True or param_values is False:
                 param_val_widget = QCheckBox()
                 # Checked if default param value is True, unchecked if False
                 if param_values:
@@ -414,8 +448,15 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
                 param_val_widget = QComboBox()
                 param_val_widget.addItems([str(i) for i in param_values])
                 if model_param.default is not None:
-                    default_idx = param_values.index(model_param.default)
-                    param_val_widget.setCurrentIndex(default_idx)
+                    default_list_idx = next(
+                        (
+                            j
+                            for j, v in enumerate(param_values)
+                            if v == model_param.default
+                        ),
+                        0,
+                    )
+                    param_val_widget.setCurrentIndex(default_list_idx)
                 param_val_widget.currentIndexChanged.connect(self.on_param_changed)
             # Int/float/str/None -> LineEdit
             elif isinstance(param_values, (int, float, str)) or param_values is None:
@@ -440,6 +481,67 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
 
     def on_param_changed(self):
         self.changed_defaults = True
+
+    def _get_channel_names(
+        self, channel_start: int = -1, channel_start_label: str = "original"
+    ) -> list[str]:
+        """Return channel labels for a channel-type parameter dropdown.
+
+        The first item is the model-specific starting value (e.g. ``-1 (original)``
+        for index-based models, or ``0 (Grayscale)`` for Cellpose). Subsequent items
+        represent actual image channels numbered from ``channel_start + 1``.
+
+        Args:
+            channel_start: Lowest integer value in the dropdown (default -1).
+            channel_start_label: Human-readable label for the first item (default "original").
+
+        Returns:
+            For single-channel/no image: ["<start> (<label>)", "<start+1>"]
+            For multi-channel: ["<start> (<label>)", "<start+1>", "<start+2>", ...]
+            Named channels: ["<start> (<label>)", "<start+1>: name", ...]
+        """
+        start_item = f"{channel_start} ({channel_start_label})"
+        layers = [
+            layer
+            for layer in self.viewer.layers
+            if isinstance(layer, napari.layers.Image)
+        ]
+        if not layers:
+            return [start_item, str(channel_start + 1)]
+        layer = layers[0]
+        dims = layer.metadata.get("dimensions")
+        n_channels = None
+        if dims is not None:
+            if hasattr(dims, "C") and dims.C is not None and dims.C > 1:
+                n_channels = dims.C
+            elif layer.rgb and hasattr(dims, "S") and dims.S is not None and dims.S > 1:
+                n_channels = dims.S
+        if n_channels is None or n_channels <= 1:
+            return [start_item, str(channel_start + 1)]
+        channel_names = layer.metadata.get("channel_names")
+        if channel_names and len(channel_names) == n_channels:
+            return [start_item] + [
+                f"{channel_start + 1 + i}: {name}"
+                for i, name in enumerate(channel_names)
+            ]
+        return [start_item] + [str(channel_start + 1 + i) for i in range(n_channels)]
+
+    def _refresh_all_channel_dropdowns(self, event=None):
+        """Repopulate all channel ComboBoxes when the layer list changes."""
+        for combo in self._channel_widgets:
+            ch_start = combo.property("channel_start")
+            ch_start_label = combo.property("channel_start_label")
+            if ch_start is None:
+                ch_start = -1
+            if ch_start_label is None:
+                ch_start_label = "original"
+            channel_names = self._get_channel_names(ch_start, ch_start_label)
+            current_idx = combo.currentIndex()
+            combo.blockSignals(True)
+            combo.clear()
+            combo.addItems(channel_names)
+            combo.setCurrentIndex(min(current_idx, combo.count() - 1))
+            combo.blockSignals(False)
 
     def clear_model_param_widget(self):
         # Remove the current model param widget
@@ -560,8 +662,21 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             if isinstance(widget, QCheckBox):
                 widget.setChecked(bool(default))
             elif isinstance(widget, QComboBox):
-                # Default is the first item in the list
-                widget.setCurrentIndex(0)
+                # Channel params: map integer to dropdown index
+                if widget.property("param_type") == "channel":
+                    # Default is the channel integer (-1, 0, 1, ...)
+                    # Map to dropdown index: channel_int + 1
+                    default_channel = param.value if param.value is not None else -1
+                    default_idx = default_channel + 1
+                # List params: find matching value or use first
+                elif param.default is not None and isinstance(param.value, list):
+                    default_idx = next(
+                        (j for j, v in enumerate(param.value) if v == param.default),
+                        0,
+                    )
+                else:
+                    default_idx = 0
+                widget.setCurrentIndex(default_idx)
             elif isinstance(widget, QLineEdit):
                 widget.setText(str(default) if default is not None else "None")
         self.changed_defaults = False
@@ -635,8 +750,12 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
         model_dict_orig = self.model_param_dict[task_model_version]
         # Get the relevant default params for this model
         default_params = self.model_version_tasks[task_model_version].params
+        # Get the model version metadata
+        model_version = self.model_versions.get(task_model_version)
         # Reformat the dict to pipe into downstream model run scripts
         model_dict = {}
+        if model_version and model_version.axes is not None:
+            model_dict["axes"] = model_version.axes
         # Extract params from model param widgets
         for orig_param, (param_name, sub_dict) in zip(
             default_params, model_dict_orig.items(), strict=True
@@ -646,7 +765,14 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             if isinstance(sub_dict["value"], QLineEdit):
                 param_value = sub_dict["value"].text()
             elif isinstance(sub_dict["value"], QComboBox):
-                param_value = sub_dict["value"].currentText()
+                if sub_dict["value"].property("param_type") == "channel":
+                    # Channel ComboBox: parse the integer from the text
+                    # Format: "-1 (original)", "0", "1", or "0: name", "1: name"
+                    text = sub_dict["value"].currentText()
+                    # Extract the leading integer (handles "-1", "0", "0: name", etc.)
+                    param_value = int(text.split(":")[0].split()[0])
+                else:
+                    param_value = sub_dict["value"].currentText()
             elif isinstance(sub_dict["value"], QCheckBox):
                 param_value = sub_dict["value"].isChecked()
             else:
@@ -701,9 +827,14 @@ Parameters can be modified if setup properly, otherwise a config file can be loa
             if isinstance(widget, QCheckBox):
                 widget.setChecked(bool(value))
             elif isinstance(widget, QComboBox):
-                idx = widget.findText(str(value))
-                if idx != -1:
-                    widget.setCurrentIndex(idx)
+                if widget.property("param_type") == "channel":
+                    # value is an integer channel index
+                    idx = int(value) if value is not None else 0
+                    widget.setCurrentIndex(min(idx, widget.count() - 1))
+                else:
+                    idx = widget.findText(str(value))
+                    if idx != -1:
+                        widget.setCurrentIndex(idx)
             elif isinstance(widget, QLineEdit):
                 widget.setText(str(value) if value is not None else "None")
             else:

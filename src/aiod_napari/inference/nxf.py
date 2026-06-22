@@ -57,13 +57,14 @@ class NxfWidget(SubWidget):
         layout: QLayout = QGridLayout,
         **kwargs,
     ):
-        # Define attributes that may be useful outside of this class
-        # or throughout it
-        self.nxf_repo = (
-            Path(environ["AIOD_NXF_REPO"])
-            if "AIOD_NXF_REPO" in environ
-            else "FrancisCrickInstitute/Segment-Flow"
-        )
+        # Define attributes that may be useful outside of this class or throughout it
+        _bundled = Path(__file__).parent.parent / "Segment-Flow"
+        if "AIOD_NXF_REPO" in environ:
+            self.nxf_repo = Path(environ["AIOD_NXF_REPO"])
+            self.nxf_profiles_dir = self.nxf_repo / "profiles"
+        else:
+            self.nxf_repo = "FrancisCrickInstitute/Segment-Flow"
+            self.nxf_profiles_dir = _bundled / "profiles"
         # Set the base Nextflow command
         self.setup_nxf_dir_cmd()
         super().__init__(
@@ -272,9 +273,7 @@ Note that 'opening' won't do anything, this is just to see what files are presen
             format_tooltip("Select the execution profile to use.")
         )
         self.nxf_profile_box = QComboBox()
-        # Get the available profiles from config dir
-        config_dir = Path(__file__).parent.parent / "Segment-Flow" / "profiles"
-        avail_confs = [str(i.stem) for i in config_dir.glob("*.conf")]
+        avail_confs = [str(i.stem) for i in self.nxf_profiles_dir.glob("*.conf")]
         avail_confs.sort()
         if len(avail_confs) == 0:
             raise FileNotFoundError(f"No Nextflow profiles found in {config_dir}!")
