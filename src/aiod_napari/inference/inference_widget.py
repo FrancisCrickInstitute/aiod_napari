@@ -240,7 +240,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     # regardless of where C (or T) sits in the array.
                     img_shape = tuple(
                         s
-                        for d, s in zip(_dims.order, img_layer.data.shape)
+                        for d, s in zip(_dims.order, img_layer.data.shape, strict=False)
                         if d in _spatial
                     )
                 elif img_layer.rgb:
@@ -550,7 +550,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
         Returns the mask unchanged when axes metadata is unavailable, when the
         mask already matches the image ndim, or for RGB images.
         """
-        _dims = img_metadata.get("dimensions", None)
+        _dims = img_metadata.get("dimensions")
         _spatial = frozenset("ZYX")
         if (
             img_layer.rgb
@@ -607,9 +607,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
             # Expand the spatial-only mask slice to match the image's full ndim
             # (e.g. (nz,ny,nx) → (nz,1,ny,nx) for a ZCYX image) so the
             # assignment index and the array shape are consistent.
-            _img_layer_ref = (
-                self.viewer.layers[img_name] if img_name in self.viewer.layers else None
-            )
+            _img_layer_ref = self.viewer.layers.get(img_name, None)
             _img_layer_meta = (
                 (_img_layer_ref.metadata or {}) if _img_layer_ref is not None else {}
             )
@@ -725,11 +723,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
             # Expand to image ndim (e.g. ZYX → Z1YX for ZCYX) so napari aligns
             # the mask's Z axis with the image's Z axis rather than its C axis.
             _img_stem = img_dict["img_path"].stem
-            _img_layer_ref = (
-                self.viewer.layers[_img_stem]
-                if _img_stem in self.viewer.layers
-                else None
-            )
+            _img_layer_ref = self.viewer.layers.get(_img_stem, None)
             _img_layer_meta = (
                 (_img_layer_ref.metadata or {}) if _img_layer_ref is not None else {}
             )

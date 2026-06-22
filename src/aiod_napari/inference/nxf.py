@@ -276,7 +276,9 @@ Note that 'opening' won't do anything, this is just to see what files are presen
         avail_confs = [str(i.stem) for i in self.nxf_profiles_dir.glob("*.conf")]
         avail_confs.sort()
         if len(avail_confs) == 0:
-            raise FileNotFoundError(f"No Nextflow profiles found in {config_dir}!")
+            raise FileNotFoundError(
+                f"No Nextflow profiles found in {self.nxf_profiles_dir}!"
+            )
         self.nxf_profile_box.addItems(avail_confs)
         self.nxf_profile_box.setFocusPolicy(qtpy.QtCore.Qt.FocusPolicy.StrongFocus)
         self.pipeline_layout.addWidget(self.nxf_profile_label, 0, 0)

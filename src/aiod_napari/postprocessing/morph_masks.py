@@ -202,10 +202,7 @@ for a single frame/slice to still be labelled the same.
         footprint = footprint_func(self.morph_ops_radius.value())
         operation = self.morph_ops_dropdown.currentText().lower()
         label = self.morph_ops_label.value()
-        if self.morph_ops_cb.isChecked():
-            data = layer.data
-        else:
-            data = layer.data.copy()
+        data = layer.data if self.morph_ops_cb.isChecked() else layer.data.copy()
         if label != 0:
             masks = data == label
             # Ensure the faster binary operation is used
@@ -243,10 +240,7 @@ for a single frame/slice to still be labelled the same.
             show_error("Please select only one Labels layer to apply the operation to.")
             return
         layer = layers[0]
-        if self.fill_hole_cb.isChecked():
-            data = layer.data
-        else:
-            data = layer.data.copy()
+        data = layer.data if self.fill_hole_cb.isChecked() else layer.data.copy()
         # Apply the filling after binarization
         data = data > 0
         # NOTE: area_threshold will be replaced by max_size in the future
@@ -275,10 +269,7 @@ for a single frame/slice to still be labelled the same.
             show_error("Please select only one Labels layer to apply the operation to.")
             return
         layer = layers[0]
-        if self.binarize_cb.isChecked():
-            data = layer.data
-        else:
-            data = layer.data.copy()
+        data = layer.data if self.binarize_cb.isChecked() else layer.data.copy()
         # Apply the binarization
         data = (data > 0).astype(np.uint8)
         # If in-place is not checked, create a new layer

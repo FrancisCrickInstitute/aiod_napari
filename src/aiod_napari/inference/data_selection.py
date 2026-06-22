@@ -5,18 +5,16 @@ import aiod_utils.io as aiod_io
 import napari
 import pandas as pd
 import qtpy.QtCore
+from bioio_base.dimensions import Dimensions
 from napari.layers import Image, Layer
 from napari.qt.threading import thread_worker
-from bioio_base.dimensions import Dimensions
 from qtpy.QtWidgets import (
     QFileDialog,
     QGridLayout,
     QLabel,
     QLayout,
-    QPushButton,
-    QLabel,
     QLineEdit,
-    QFileDialog,
+    QPushButton,
     QWidget,
 )
 
