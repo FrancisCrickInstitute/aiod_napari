@@ -1,38 +1,38 @@
-from os import environ
-from collections import defaultdict
-from pathlib import Path
+import re
 import shlex
 import shutil
 import subprocess
+from os import environ
+from pathlib import Path
 from typing import Optional, Union
-from urllib.parse import urlparse
-import re
 
-from aiod_registry import TASK_NAMES
+import aiod_utils.preprocess
 import napari
-from napari.qt.threading import thread_worker
-from napari.utils.notifications import show_info
-import pandas as pd
 import qtpy.QtCore
-from qtpy.QtWidgets import (
-    QWidget,
-    QLayout,
-    QGridLayout,
-    QHBoxLayout,
-    QVBoxLayout,
-    QLabel,
-    QComboBox,
-    QPushButton,
-    QFileDialog,
-    QProgressBar,
-    QCheckBox,
-    QSpinBox,
-    QDoubleSpinBox,
-    QGroupBox,
-    QMessageBox,
-)
 import tqdm
 import yaml
+from aiod_registry import TASK_NAMES
+from aiod_utils.io import image_paths_to_csv
+from aiod_utils.stacks import Stack, calc_num_stacks, generate_stack_indices
+from napari.qt.threading import thread_worker
+from napari.utils.notifications import show_info
+from qtpy.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDoubleSpinBox,
+    QFileDialog,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLayout,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSpinBox,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ai_on_demand.utils import (
     InfoWindow,
@@ -41,9 +41,6 @@ from ai_on_demand.utils import (
     sanitise_name,
 )
 from ai_on_demand.widget_classes import SubWidget
-import aiod_utils.preprocess
-from aiod_utils.stacks import generate_stack_indices, calc_num_stacks, Stack
-from aiod_utils.io import image_paths_to_csv
 
 
 class NxfWidget(SubWidget):
@@ -61,13 +58,14 @@ class NxfWidget(SubWidget):
         layout: QLayout = QGridLayout,
         **kwargs,
     ):
-        # Define attributes that may be useful outside of this class
-        # or throughout it
-        self.nxf_repo = (
-            Path(environ["AIOD_NXF_REPO"])
-            if "AIOD_NXF_REPO" in environ
-            else "FrancisCrickInstitute/Segment-Flow"
-        )
+        # Define attributes that may be useful outside of this class or throughout it
+        _bundled = Path(__file__).parent.parent / "Segment-Flow"
+        if "AIOD_NXF_REPO" in environ:
+            self.nxf_repo = Path(environ["AIOD_NXF_REPO"])
+            self.nxf_profiles_dir = self.nxf_repo / "profiles"
+        else:
+            self.nxf_repo = "FrancisCrickInstitute/Segment-Flow"
+            self.nxf_profiles_dir = _bundled / "profiles"
         # Set the base Nextflow command
         self.setup_nxf_dir_cmd()
         super().__init__(
@@ -278,18 +276,14 @@ Note that 'opening' won't do anything, this is just to see what files are presen
             format_tooltip("Select the execution profile to use.")
         )
         self.nxf_profile_box = QComboBox()
-        # Get the available profiles from config dir
-        config_dir = Path(__file__).parent.parent / "Segment-Flow" / "profiles"
-        avail_confs = [str(i.stem) for i in config_dir.glob("*.conf")]
+        avail_confs = [str(i.stem) for i in self.nxf_profiles_dir.glob("*.conf")]
         avail_confs.sort()
         if len(avail_confs) == 0:
             raise FileNotFoundError(
-                f"No Nextflow profiles found in {config_dir}!"
+                f"No Nextflow profiles found in {self.nxf_profiles_dir}!"
             )
         self.nxf_profile_box.addItems(avail_confs)
-        self.nxf_profile_box.setFocusPolicy(
-            qtpy.QtCore.Qt.FocusPolicy.StrongFocus
-        )
+        self.nxf_profile_box.setFocusPolicy(qtpy.QtCore.Qt.FocusPolicy.StrongFocus)
         self.pipeline_layout.addWidget(self.nxf_profile_label, 0, 0)
         self.pipeline_layout.addWidget(self.nxf_profile_box, 0, 1)
 

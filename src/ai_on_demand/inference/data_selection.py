@@ -7,12 +7,14 @@ from napari.layers import Image, Layer
 from napari.qt.threading import thread_worker
 import numpy as np
 import qtpy.QtCore
+from bioio_base.dimensions import Dimensions
 from qtpy.QtWidgets import (
     QWidget,
     QLayout,
     QGridLayout,
     QPushButton,
     QLabel,
+    QLineEdit,
     QFileDialog,
 )
 import pandas as pd
@@ -110,6 +112,39 @@ Images can also be opened, or dragged into napari as normal. The selection will 
         self.img_counts = QLabel(self.init_file_msg)
         self.img_counts.setWordWrap(True)
         self.inner_layout.addWidget(self.img_counts, 1, 0, 1, 3)
+
+        # Axis override row
+        axes_label = QLabel("Axes override:")
+        axes_label.setToolTip(
+            format_tooltip(
+                "Manually specify the axis order of loaded images (e.g. ZCYX, CZYX, ZYX). "
+                "Use this when the file has no axis metadata and the channel dropdown shows wrong values. "
+                "Letters: T=time, Z=depth, C=channel, Y=height, X=width, S=RGB samples."
+            )
+        )
+        self.axes_override_edit = QLineEdit()
+        self.axes_override_edit.setPlaceholderText("e.g. ZCYX  (blank = auto)")
+        self.axes_override_edit.setToolTip(
+            format_tooltip(
+                "Enter axis letters matching the number of image dimensions. "
+                "Leave blank to let bioio determine axes automatically."
+            )
+        )
+        self.axes_override_btn = QPushButton("Apply")
+        self.axes_override_btn.setToolTip(
+            format_tooltip(
+                "Apply the axes override to all currently loaded image layers "
+                "whose number of dimensions matches the length of the axes string."
+            )
+        )
+        self.axes_override_btn.clicked.connect(self.on_apply_axes_override)
+        self.inner_layout.addWidget(axes_label, 2, 0)
+        self.inner_layout.addWidget(self.axes_override_edit, 2, 1)
+        self.inner_layout.addWidget(self.axes_override_btn, 2, 2)
+        # Feedback label showing detected dimensions after override
+        self.axes_feedback_label = QLabel("")
+        self.axes_feedback_label.setWordWrap(True)
+        self.inner_layout.addWidget(self.axes_feedback_label, 3, 0, 1, 3)
 
         # Run the file counter if there are images already loaded
         if len(self.image_path_dict) > 0:
@@ -264,6 +299,74 @@ Images can also be opened, or dragged into napari as normal. The selection will 
         self.viewer.reset_view()
         # Signalling the images
         self.images_loaded.emit()
+        # Apply any pending axes override once images are loaded
+        if self.axes_override_edit.text().strip():
+            self.on_apply_axes_override()
+
+    def on_apply_axes_override(self):
+        """Apply a manually specified axis order to all loaded image layers.
+
+        Patches ``layer.metadata["dimensions"]`` so that channel/Z dropdowns
+        and ``get_img_dims()`` use the correct axis mapping without reloading
+        the image data.
+        """
+        axes = self.axes_override_edit.text().strip().upper()
+        if not axes:
+            return
+        # Validate: only known bioio axis letters
+        valid_letters = set("TCZYXS")
+        invalid = set(axes) - valid_letters
+        if invalid:
+            from napari.utils.notifications import show_error
+
+            show_error(
+                f"Invalid axis letters: {', '.join(sorted(invalid))}. "
+                "Use letters from T, C, Z, Y, X, S only."
+            )
+            return
+        if len(axes) != len(set(axes)):
+            from napari.utils.notifications import show_error
+
+            show_error("Duplicate axis letters in override string.")
+            return
+
+        patched = 0
+        feedback_dims = None
+        for layer in self.viewer.layers:
+            if not isinstance(layer, Image):
+                continue
+            if layer.data.ndim != len(axes):
+                continue
+            new_dims = Dimensions(axes, layer.data.shape)
+            layer.metadata["dimensions"] = new_dims
+            if feedback_dims is None:
+                feedback_dims = new_dims
+            patched += 1
+
+        if patched == 0:
+            from napari.utils.notifications import show_info
+
+            show_info(
+                f"No image layers with {len(axes)} dimensions found to apply '{axes}' to."
+            )
+            return
+
+        # Show detected dimensions as feedback
+        if feedback_dims is not None:
+            parts = []
+            for letter in axes:
+                val = getattr(feedback_dims, letter, None)
+                if val is not None:
+                    parts.append(f"{letter}={val}")
+            self.axes_feedback_label.setText(f"Detected: {', '.join(parts)}")
+
+        # Refresh channel dropdowns in model widget (if it exists)
+        if "model" in self.parent.subwidgets:
+            self.parent.subwidgets["model"]._refresh_all_channel_dropdowns()
+
+        from napari.utils.notifications import show_info
+
+        show_info(f"Applied axes '{axes}' to {patched} image layer(s).")
 
     def update_file_count(
         self, paths: Optional[list[Union[str, Path]]] = None

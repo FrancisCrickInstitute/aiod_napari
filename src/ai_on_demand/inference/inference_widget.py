@@ -1,28 +1,27 @@
 import copy
-from pathlib import Path
 import time
+from pathlib import Path
 from typing import Optional, Union
 
+import aiod_utils.preprocess
+import aiod_utils.rle as aiod_rle
 import napari
-from napari.qt.threading import thread_worker
 import numpy as np
-
+import tifffile
 from ai_on_demand.inference import (
-    TaskWidget,
+    ConfigWidget,
     DataWidget,
     ExportWidget,
     ModelWidget,
     NxfWidget,
     PreprocessWidget,
-    ConfigWidget,
+    TaskWidget,
 )
+from ai_on_demand.utils import calc_param_hash, get_img_dims
 from ai_on_demand.widget_classes import MainWidget
-from ai_on_demand.utils import calc_param_hash
-import tifffile
-import aiod_utils.preprocess
-from aiod_utils.stacks import stack_to_shape
 from aiod_utils.io import extract_idxs_from_fname
-import aiod_utils.rle as aiod_rle
+from aiod_utils.stacks import stack_to_shape
+from napari.qt.threading import thread_worker
 
 
 class Inference(MainWidget):
@@ -192,16 +191,32 @@ Run segmentation/inference on selected images using one of the available pre-tra
             )
             # Grab corresponding image layer to get info as needed
             img_layer = self.viewer.layers[f"{fpath.stem}"]
-            img_metadata = copy.deepcopy(img_layer.metadata) if img_layer.metadata is not None else {}
+            img_metadata = (
+                copy.deepcopy(img_layer.metadata)
+                if img_layer.metadata is not None
+                else {}
+            )
             # If it does, load it
             if mask_fpath.exists():
                 mask_data, metadata = self._load_mask_file(mask_fpath)
                 metadata = metadata["metadata"]
                 metadata["img_scale"] = img_layer.scale
                 # Check the filename if there's downsampling to ensure correct scaling
-                downsample_factor = aiod_utils.preprocess.get_downsample_factor(methods=None, filename=mask_fpath.stem)
+                downsample_factor = (
+                    aiod_utils.preprocess.get_downsample_factor(
+                        methods=None, filename=mask_fpath.stem
+                    )
+                )
                 if downsample_factor is not None:
                     metadata["downsample_factor"] = downsample_factor
+                # Expand the mask to match the image's full ndim by inserting
+                # singleton dims at non-spatial positions (e.g. ZYX → ZCYX
+                # gives (Z,Y,X) → (Z,1,Y,X)) so napari aligns axes correctly.
+                mask_data = self._expand_mask_to_img_dims(
+                    mask_data, img_layer, img_metadata
+                )
+                # After expansion, ndim matches img_layer, so use its scale directly.
+                mask_scale = img_layer.scale
                 # Check if the mask layer already exists
                 if layer_name in self.viewer.layers:
                     # If so, update the data just to make sure & ensure visible
@@ -216,44 +231,50 @@ Run segmentation/inference on selected images using one of the available pre-tra
                         visible=True,
                         opacity=0.5,
                         metadata=metadata,
-                        scale=img_layer.scale * metadata.get("downsample_factor", 1.0)
+                        scale=mask_scale
+                        * metadata.get("downsample_factor", 1.0),
                     )
             else:
                 # If the associated image is present, use its shape
                 # Get ndim of the layer (this accounts for RGB)
                 ndim = img_layer.ndim
-                # Channels (non-RGB) & Z
-                # TODO: Switch to using utils.get_img_dims
-                if ndim == 4:
-                    # Channels should be first, don't care for labels so remove
+                # Fetch axes metadata early; used for both img_shape and
+                # mask_scale so that any ordering (CZYX, ZCYX, ZYX, CYX, YX,
+                # …) is handled correctly without positional assumptions.
+                _dims = img_metadata.get("dimensions", None)
+                _spatial = frozenset("ZYX")
+                # Determine the spatial-only shape for the mask placeholder.
+                # Instance segmentation models return spatial-only outputs
+                # even when the input has one or more channel dimensions.
+                if _dims is not None and hasattr(_dims, "order"):
+                    # Use the recorded axes order to pick spatial dims exactly,
+                    # regardless of where C (or T) sits in the array.
+                    img_shape = tuple(
+                        s
+                        for d, s in zip(_dims.order, img_layer.data.shape)
+                        if d in _spatial
+                    )
+                elif img_layer.rgb:
+                    # Napari represents RGB images with the colour channel as
+                    # the last axis (Y, X, 3) or (Z, Y, X, 3); drop it.
+                    img_shape = img_layer.data.shape[:-1]
+                elif ndim >= 4:
+                    # No axes metadata and ≥4-D: strip the leading axis as a
+                    # best-effort guess (most likely C or T at position 0).
                     img_shape = img_layer.data.shape[1:]
                 elif ndim == 3:
-                    # If we have a Z, no problem
                     if ("bioio_dims" in img_metadata) and (
                         img_metadata["bioio_dims"].Z > 1
                     ):
-                        img_shape = self.viewer.layers[
-                            f"{fpath.stem}"
-                        ].data.shape
-                    # Otherwise not loaded with bioio, so handle as Napari interprets
+                        # bioio confirmed Z > 1, so all three dims are spatial
+                        img_shape = img_layer.data.shape
                     else:
-                        # If RGB, then 2D RGB image
-                        # NOTE: This does not handle multi-channel 2D images
-                        if img_layer.rgb:
-                            img_shape = self.viewer.layers[
-                                f"{fpath.stem}"
-                            ].data.shape[1:]
-                        # Otherwise it's 3D single-channel image
-                        else:
-                            img_shape = self.viewer.layers[
-                                f"{fpath.stem}"
-                            ].data.shape
-                # Otherwise take the 2D image shape
-                # NOTE: [:ndim] is to handle RGB images as Napari interprets
+                        # Cannot distinguish C from Z without axes metadata;
+                        # conservatively strip the leading axis.
+                        img_shape = img_layer.data.shape[1:]
                 else:
-                    img_shape = self.viewer.layers[f"{fpath.stem}"].data.shape[
-                        :ndim
-                    ]
+                    # 2D (Y, X)
+                    img_shape = img_layer.data.shape
                 if prep_options is not None:
                     # Check if downsampling
                     downsample_factor = (
@@ -271,7 +292,23 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     )
                 else:
                     mask_shape = img_shape
+                # Expand the spatial-only mask shape to match the image's full
+                # ndim by inserting size-1 dims at non-spatial axis positions
+                # (e.g. (Z,Y,X) → (Z,1,Y,X) for ZCYX), so napari aligns axes
+                # correctly instead of padding from the left with trailing-dim logic.
+                if (
+                    _dims is not None
+                    and hasattr(_dims, "order")
+                    and not img_layer.rgb
+                ):
+                    expanded = list(mask_shape)
+                    for pos, dim_char in enumerate(_dims.order):
+                        if dim_char not in _spatial:
+                            expanded.insert(pos, 1)
+                    mask_shape = tuple(expanded)
                 img_metadata["img_scale"] = img_layer.scale
+                # After expansion mask_shape has the same ndim as img_layer.scale.
+                mask_scale = img_layer.scale
                 # Add a Labels layer for this file
                 self.viewer.add_labels(
                     np.zeros(mask_shape, dtype=np.uint16),
@@ -279,7 +316,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     visible=False,
                     opacity=0.5,
                     metadata=img_metadata,
-                    scale=img_layer.scale,
+                    scale=mask_scale,
                 )
             # Now move the new layer to be just above the image layer, ensuring they group together
             self.viewer.layers.move(
@@ -330,12 +367,14 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     all_layer_names.append(layer_name)
                     prep_options.append(prep_set if prep_set else None)
                     preprocess_strs.append(suffix)
-        self.mask_prefixes = {
-            i.split("_masks_")[0] for i in all_layer_names
-        }
+        self.mask_prefixes = {i.split("_masks_")[0] for i in all_layer_names}
         # Insert all info into structure for later use
         for fpath, layer_name, prep_set, preprocess_str in zip(
-            all_img_paths, all_layer_names, prep_options, preprocess_strs, strict=True
+            all_img_paths,
+            all_layer_names,
+            prep_options,
+            preprocess_strs,
+            strict=True,
         ):
             self.img_mask_info.append(
                 {
@@ -472,7 +511,9 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 # e.g. {"downsample_factor": 2}. Wrap it to match the rle metadata structure.
                 imagej_meta = tif.imagej_metadata or {}
                 # Strip tifffile bookkeeping keys that aren't part of our saved metadata
-                imagej_meta = {k: v for k, v in imagej_meta.items() if k not in ("axes",)}
+                imagej_meta = {
+                    k: v for k, v in imagej_meta.items() if k not in ("axes",)
+                }
             return arr, {"metadata": imagej_meta}
         else:
             encoding = aiod_rle.load_encoding(fpath)
@@ -498,7 +539,46 @@ Run segmentation/inference on selected images using one of the available pre-tra
         # Add the extension
         return f"{mask_root}.{extension}"
 
-    def _reset_viewer(self):
+    def _expand_mask_to_img_dims(
+        self,
+        mask_arr: np.ndarray,
+        img_layer,
+        img_metadata: dict,
+    ) -> np.ndarray:
+        """Expand a spatial-only mask to match the full ndim of the image layer.
+
+        Inserts singleton dimensions at the positions of non-spatial axes using
+        the axes order recorded in ``img_metadata["dimensions"].order``.
+
+        Example: ZYX mask (75, 75, 75) + ZCYX image → (75, 1, 75, 75), so that
+        napari aligns the Z slider correctly rather than using trailing-dim padding
+        which would map the mask's Z axis onto the image's C axis.
+
+        The invariant that makes the sequential insertion work: when processing
+        position ``pos`` in the axes order string, the array has exactly ``pos``
+        axes (one contributed per position already handled, whether spatial or
+        inserted-singleton), so ``np.expand_dims(arr, axis=pos)`` always places
+        the new singleton at the correct absolute position in the final array.
+
+        Returns the mask unchanged when axes metadata is unavailable, when the
+        mask already matches the image ndim, or for RGB images.
+        """
+        _dims = img_metadata.get("dimensions", None)
+        _spatial = frozenset("ZYX")
+        if (
+            img_layer.rgb
+            or _dims is None
+            or not hasattr(_dims, "order")
+            or mask_arr.ndim >= img_layer.ndim
+        ):
+            return mask_arr
+        result = mask_arr
+        for pos, dim_char in enumerate(_dims.order):
+            if dim_char not in _spatial:
+                result = np.expand_dims(result, axis=pos)
+        return result
+
+    def _reset_viewer(self, return_value=None):
         """
         Should help alleviate rendering issue where masks are mis-aligned.
 
@@ -539,14 +619,35 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     img_name = d["img_path"].stem
                     break
             label_layer = self.viewer.layers[mask_layer_name]
-            # On first mask for this layer, check if shape matches model output and recreate if not
-            if not label_layer.visible and label_layer.ndim != mask_arr.ndim:
-                correct_shape = tuple(s for s in label_layer.data.shape if s > 1)
+            # Expand the spatial-only mask slice to match the image's full ndim
+            # (e.g. (nz,ny,nx) → (nz,1,ny,nx) for a ZCYX image) so the
+            # assignment index and the array shape are consistent.
+            _img_layer_ref = (
+                self.viewer.layers[img_name]
+                if img_name in self.viewer.layers
+                else None
+            )
+            _img_layer_meta = (
+                (_img_layer_ref.metadata or {})
+                if _img_layer_ref is not None
+                else {}
+            )
+            if _img_layer_ref is not None:
+                mask_arr = self._expand_mask_to_img_dims(
+                    mask_arr, _img_layer_ref, _img_layer_meta
+                )
+            _dims_meta = _img_layer_meta.get("dimensions", None)
+            _spatial = frozenset("ZYX")
+            # On first mask for this layer, check if shape matches model output and recreate if not.
+            if (
+                not label_layer.visible
+                and label_layer.data.shape != mask_arr.shape
+            ):
                 layer_idx = self.viewer.layers.index(label_layer)
                 layer_meta = label_layer.metadata
                 self.viewer.layers.remove(label_layer)
                 label_layer = self.viewer.add_labels(
-                    np.zeros(correct_shape, dtype=np.uint16),
+                    np.zeros(mask_arr.shape, dtype=np.uint16),
                     name=mask_layer_name,
                     visible=False,
                     opacity=0.5,
@@ -555,24 +656,42 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 self.viewer.layers.move(
                     self.viewer.layers.index(mask_layer_name), layer_idx
                 )
-            # Insert mask data
-            if label_layer.ndim != mask_arr.ndim:
-                # Fallback: shouldn't happen after recreation, but guard anyway
-                mask_arr = np.squeeze(mask_arr)
-            if label_layer.ndim == mask_arr.ndim:
-                # TODO: Handle multi-channel images
-                # TODO: Check DHW orientation? Does Napari enforce this?
-                if label_layer.ndim == 3:
-                    label_layer.data[
-                        start_z:end_z, start_y:end_y, start_x:end_x
-                    ] = mask_arr
+            # Insert mask data using the correct per-axis index tuple so that
+            # non-spatial singleton dims are addressed with slice(None).
+            if label_layer.data.shape == mask_arr.shape:
+                if (
+                    _dims_meta is not None
+                    and hasattr(_dims_meta, "order")
+                    and label_layer.ndim == len(_dims_meta.order)
+                ):
+                    idx = tuple(
+                        slice(start_z, end_z)
+                        if d == "Z"
+                        else slice(start_y, end_y)
+                        if d == "Y"
+                        else slice(start_x, end_x)
+                        if d == "X"
+                        else slice(None)
+                        for d in _dims_meta.order
+                    )
+                elif label_layer.ndim >= 3:
+                    idx = (
+                        slice(start_z, end_z),
+                        slice(start_y, end_y),
+                        slice(start_x, end_x),
+                    )
                 else:
-                    label_layer.data[start_y:end_y, start_x:end_x] = mask_arr
+                    idx = (slice(start_y, end_y), slice(start_x, end_x))
+                label_layer.data[idx] = mask_arr
             label_layer.visible = True
             # Apply scale for downsampled masks, accounting for pixel size scaling if present
-            downsample_factor = label_layer.metadata.get("downsample_factor", None)
+            downsample_factor = label_layer.metadata.get(
+                "downsample_factor", None
+            )
             if downsample_factor is not None:
-                label_layer.scale = label_layer.metadata["img_scale"] * downsample_factor
+                label_layer.scale = (
+                    label_layer.metadata["img_scale"] * downsample_factor
+                )
             # Try to rearrange the layers to get them on top
             idxs = []
             # Have to check due to possible delay in loading
@@ -585,8 +704,18 @@ Run segmentation/inference on selected images using one of the available pre-tra
             label_idx = self.viewer.layers.index(label_layer)
             idxs.append(label_idx)
             self.viewer.layers.move_multiple(idxs, -1)
-            # Switch viewer to latest slice
-            self.viewer.dims.set_point(0, end_z - 1)
+            # Switch viewer to latest Z slice, using the correct viewer dim for Z.
+            if end_z > start_z:
+                if (
+                    _dims_meta is not None
+                    and hasattr(_dims_meta, "order")
+                    and "Z" in _dims_meta.order
+                ):
+                    self.viewer.dims.set_point(
+                        _dims_meta.order.index("Z"), end_z - 1
+                    )
+                else:
+                    self.viewer.dims.set_point(0, end_z - 1)
             # Insert the slice number into tracker for the progress bar
             self.subwidgets["nxf"].progress_dict[img_name] += 1
         # Now update the total progress bar
@@ -621,14 +750,51 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 preprocess_str=preprocess_str,
             )
             mask_arr, _ = self._load_mask_file(fpath)
+            # Expand to image ndim (e.g. ZYX → Z1YX for ZCYX) so napari aligns
+            # the mask's Z axis with the image's Z axis rather than its C axis.
+            _img_stem = img_dict["img_path"].stem
+            _img_layer_ref = (
+                self.viewer.layers[_img_stem]
+                if _img_stem in self.viewer.layers
+                else None
+            )
+            _img_layer_meta = (
+                (_img_layer_ref.metadata or {})
+                if _img_layer_ref is not None
+                else {}
+            )
+            if _img_layer_ref is not None:
+                mask_arr = self._expand_mask_to_img_dims(
+                    mask_arr, _img_layer_ref, _img_layer_meta
+                )
             # Insert mask data
             label_layer = self.viewer.layers[mask_layer_name]
+            # Recreate the layer if shape changed after expansion.
+            if label_layer.data.shape != mask_arr.shape:
+                layer_idx = self.viewer.layers.index(label_layer)
+                layer_meta = label_layer.metadata
+                layer_name_local = label_layer.name
+                self.viewer.layers.remove(label_layer)
+                label_layer = self.viewer.add_labels(
+                    np.zeros(mask_arr.shape, dtype=np.uint16),
+                    name=layer_name_local,
+                    visible=False,
+                    opacity=0.5,
+                    metadata=layer_meta,
+                )
+                self.viewer.layers.move(
+                    self.viewer.layers.index(layer_name_local), layer_idx
+                )
             label_layer.data = mask_arr
             label_layer.visible = True
             # Apply scale for downsampled masks, accounting for pixel size scaling if present
-            downsample_factor = label_layer.metadata.get("downsample_factor", None)
+            downsample_factor = label_layer.metadata.get(
+                "downsample_factor", None
+            )
             if downsample_factor is not None:
-                label_layer.scale = label_layer.metadata["img_scale"] * downsample_factor
+                label_layer.scale = (
+                    label_layer.metadata["img_scale"] * downsample_factor
+                )
         # Now we'll sort all the layers, grouping together the image and mask layers for each image
         # Get the image layer names
         image_layers = sorted(
