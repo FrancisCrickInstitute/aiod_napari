@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Debug / scratch files (not for distribution)
+src/aiod_napari/debug/
+
 # C extensions
 *.so
 
@@ -37,13 +40,15 @@ pip-delete-this-directory.txt
 # Unit test / coverage reports
 htmlcov/
 .tox/
+.nox/
 .coverage
 .coverage.*
 .cache
 nosetests.xml
 coverage.xml
-*,cover
+*.cover
 .hypothesis/
+.pytest_cache/
 .napari_cache
 
 # Translations
@@ -73,9 +78,6 @@ venv/
 
 # IPython Notebook
 .ipynb_checkpoints
-
-# pyenv
-.python-version
 
 # OS
 .DS_Store

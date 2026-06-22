@@ -1,3 +1,4 @@
-[submodule "src/ai_on_demand/Segment-Flow"]
-	path = src/ai_on_demand/Segment-Flow
+[submodule "src/aiod_napari/Segment-Flow"]
+	path = src/aiod_napari/Segment-Flow
 	url = https://github.com/FrancisCrickInstitute/Segment-Flow/
+	ignore = dirty

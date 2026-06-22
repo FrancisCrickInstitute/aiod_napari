@@ -1,11 +1,11 @@
 from typing import NamedTuple
-from napari import run as napari_run
+
 import numpy as np
 import pytest
+from napari import run as napari_run
 from qtpy.QtCore import QTimer
 from qtpy.QtWidgets import QApplication
 from skimage import io
-
 
 # Smoke test: one representative (task, model display name, variant) combination.
 SMOKE_PARAMS = [
@@ -132,7 +132,7 @@ def inference_widget(make_napari_viewer_proxy, base_dir, monkeypatch):
     """
     viewer = make_napari_viewer_proxy()
     _, plugin_widget = viewer.window.add_plugin_dock_widget(
-        "ai-on-demand", "Inference"
+        "aiod-napari", "Inference"
     )
     monkeypatch.setattr(plugin_widget, "store_settings", lambda: None)
     return InferenceFixture(viewer=viewer, widget=plugin_widget)

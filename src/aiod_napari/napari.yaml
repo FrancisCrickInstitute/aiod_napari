@@ -1,0 +1,60 @@
+name: aiod-napari
+display_name: AI OnDemand
+on_activate: aiod_napari.load_manifests:activate_plugin
+contributions:
+  commands:
+    - id: aiod-napari.inference
+      python_name: aiod_napari.inference:Inference
+      title: Segment using pre-trained models
+      short_title: Inference
+    - id: aiod-napari.evaluation
+      python_name: aiod_napari.evaluation:Evaluation
+      title: Evaluate segmentations
+      short_title: Evaluation
+    - id: aiod-napari.postprocess
+      python_name: aiod_napari.postprocessing:Postprocess
+      title: Postprocess segmentations
+      short_title: Postprocess
+    - id: aiod-napari.example_data
+      title: Example FIB SEM data
+      short_title: Example Data
+      python_name: aiod_napari.example_data:load_example_data
+    - id: aiod-napari.bioio_reader
+      title: Read bioimaging file formats
+      python_name: aiod_napari.io:get_bioio_reader
+    - id: aiod-napari.rle_reader
+      title: Read RLE segmentations
+      python_name: aiod_napari.io:get_rle_reader
+    - id: aiod-napari.rle_writer
+      title: Write segmentations to RLE format
+      python_name: aiod_napari.io:rle_writer
+  widgets:
+    - command: aiod-napari.inference
+      display_name: Inference
+    - command: aiod-napari.evaluation
+      display_name: Segmentation Evaluation
+    - command: aiod-napari.postprocess
+      display_name: Postprocess
+  sample_data:
+    - command: aiod-napari.example_data
+      display_name: Example FIB SEM data
+      key: example_fibsem
+  readers:
+    - command: aiod-napari.rle_reader
+      filename_patterns:
+        - '*.pkl'
+        - '*.pickle'
+        - '*.rle'
+      accepts_directories: false
+    - command: aiod-napari.bioio_reader
+      filename_patterns:
+      - '*'
+      accepts_directories: false
+  writers:
+    - command: aiod-napari.rle_writer
+      layer_types:
+        - labels
+      filename_extensions:
+        - '*.pkl'
+        - '*.pickle'
+        - '*.rle'

@@ -1,8 +1,0 @@
-include LICENSE
-include README.md
-include src/ai_on_demand/resources/*
-include src/ai_on_demand/Segment-Flow/profiles/*.conf
-include src/ai_on_demand/Segment-Flow/modules/models/resources/usr/bin/create_splits.py
-
-recursive-exclude * __pycache__
-recursive-exclude * *.py[co]
