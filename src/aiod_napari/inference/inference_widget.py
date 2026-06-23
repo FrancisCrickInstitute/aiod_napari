@@ -232,15 +232,26 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 # …) is handled correctly without positional assumptions.
                 _dims = img_metadata.get("dimensions", None)
                 _spatial = frozenset("ZYX")
+                # _dims.order is the FULL standard bioio order (e.g. "TCZYX"),
+                # but the image data was loaded with only the *present* dims
+                # (those with size > 1, e.g. "YX" for a 2D image or "ZYX" for
+                # a 3D one). Using the full order in zip() would pair leading
+                # non-spatial dims (T, C) with the data axes, yielding an
+                # empty img_shape for 2D images. Filter to present dims only.
+                _data_order = (
+                    "".join(d for d in _dims.order if getattr(_dims, d, 1) > 1)
+                    if _dims is not None and hasattr(_dims, "order")
+                    else None
+                )
                 # Determine the spatial-only shape for the mask placeholder.
                 # Instance segmentation models return spatial-only outputs
                 # even when the input has one or more channel dimensions.
-                if _dims is not None and hasattr(_dims, "order"):
-                    # Use the recorded axes order to pick spatial dims exactly,
+                if _data_order is not None:
+                    # Use the present-dims order to pick spatial dims exactly,
                     # regardless of where C (or T) sits in the array.
                     img_shape = tuple(
                         s
-                        for d, s in zip(_dims.order, img_layer.data.shape, strict=False)
+                        for d, s in zip(_data_order, img_layer.data.shape, strict=False)
                         if d in _spatial
                     )
                 elif img_layer.rgb:
@@ -291,9 +302,11 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 # ndim by inserting size-1 dims at non-spatial axis positions
                 # (e.g. (Z,Y,X) → (Z,1,Y,X) for ZCYX), so napari aligns axes
                 # correctly instead of padding from the left with trailing-dim logic.
-                if _dims is not None and hasattr(_dims, "order") and not img_layer.rgb:
+                # Use _data_order (present dims only) to avoid inserting singletons
+                # for absent dims (T, C with size 1) from the full bioio order.
+                if _data_order is not None and not img_layer.rgb:
                     expanded = list(mask_shape)
-                    for pos, dim_char in enumerate(_dims.order):
+                    for pos, dim_char in enumerate(_data_order):
                         if dim_char not in _spatial:
                             expanded.insert(pos, 1)
                     mask_shape = tuple(expanded)
@@ -668,9 +681,8 @@ Run segmentation/inference on selected images using one of the available pre-tra
             # Apply scale for downsampled masks, accounting for pixel size scaling if present
             downsample_factor = label_layer.metadata.get("downsample_factor", None)
             if downsample_factor is not None:
-                label_layer.scale = (
-                    label_layer.metadata["img_scale"] * downsample_factor
-                )
+                img_scale = label_layer.metadata["img_scale"]
+                label_layer.scale = img_scale * downsample_factor[-len(img_scale) :]
             # Try to rearrange the layers to get them on top
             idxs = []
             # Have to check due to possible delay in loading
@@ -763,9 +775,8 @@ Run segmentation/inference on selected images using one of the available pre-tra
             # Apply scale for downsampled masks, accounting for pixel size scaling if present
             downsample_factor = label_layer.metadata.get("downsample_factor", None)
             if downsample_factor is not None:
-                label_layer.scale = (
-                    label_layer.metadata["img_scale"] * downsample_factor
-                )
+                img_scale = label_layer.metadata["img_scale"]
+                label_layer.scale = img_scale * downsample_factor[-len(img_scale) :]
         # Now we'll sort all the layers, grouping together the image and mask layers for each image
         # Get the image layer names
         image_layers = sorted(
