@@ -32,9 +32,7 @@ def run_smoke_tests() -> None:
     from importlib.resources import files
 
     profiles_dir = files("aiod_napari").joinpath("Segment-Flow", "profiles")
-    conf_files = [
-        p for p in profiles_dir.iterdir() if p.name.endswith(".conf")
-    ]
+    conf_files = [p for p in profiles_dir.iterdir() if p.name.endswith(".conf")]
     assert len(conf_files) > 0, (
         f"No .conf profiles found in {profiles_dir} — Segment-Flow submodule was not bundled correctly"
     )

@@ -55,6 +55,7 @@ Images can also be opened, or dragged into napari as normal. The selection will 
     def create_box(self, variant: str | None = None):
         # Create empty counter to show image load progress
         self.load_img_counter = 0
+        self._total_loading = 0
         # Create container for image paths
         self.image_path_dict = {}
         # Do a quick check to see if the user has added any images already
@@ -245,8 +246,9 @@ Images can also be opened, or dragged into napari as normal. The selection will 
             return
         # Ensure Nextflow subwidget knows not all images are loaded until loading completes
         self.parent.subwidgets["nxf"].all_loaded = False
-        # Reset counter
+        # Reset counter and record total number of images to load
         self.load_img_counter = 0
+        self._total_loading = len(imgs_to_load)
 
         # Create separate thread worker to avoid blocking
         @thread_worker(
@@ -279,7 +281,10 @@ Images can also be opened, or dragged into napari as normal. The selection will 
             self.viewer.add_layer(Layer.create(*i))
 
     def _finished_loading(self):
-        """Signify to user that all images have been loaded."""
+        """Called once per thread worker; emit images_loaded only when all images are done."""
+        self.load_img_counter += 1
+        if self.load_img_counter < self._total_loading:
+            return
         self.img_counts.setText(
             self.img_counts.text().replace(self.loading_txt, " (all images loaded).")
         )
