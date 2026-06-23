@@ -1,5 +1,4 @@
 import importlib.util
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -7,14 +6,11 @@ import pytest
 from aiod_napari.io import (
     bioio_reader,
     get_bioio_reader,
-    prepare_bioio_as_napari_layer,
 )
 
 
 # Helper functions for common assertions
-def assert_valid_napari_layer_data(
-    layer_data_list, expected_layer_type="image"
-):
+def assert_valid_napari_layer_data(layer_data_list, expected_layer_type="image"):
     """Validate that layer_data_list follows napari layer format."""
     assert isinstance(layer_data_list, list), "Should return a list"
     assert len(layer_data_list) > 0, "Should return at least one layer"
@@ -86,9 +82,7 @@ def test_get_bioio_reader_supported_formats(
 ):
     """Test that get_bioio_reader returns a callable reader for supported formats."""
     test_data = np.random.randint(0, 255, size=shape, dtype=dtype)
-    test_file = create_test_image(
-        tmp_path, f"test{extension}", test_data, file_format
-    )
+    test_file = create_test_image(tmp_path, f"test{extension}", test_data, file_format)
 
     reader = get_bioio_reader(str(test_file))
     assert reader is not None, f"Should return a reader for {extension} files"
@@ -123,9 +117,7 @@ def test_bioio_reader_returns_valid_layer_data(tmp_path):
     [
         np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.uint8),
         np.random.randint(0, 255, size=(5, 10, 20), dtype=np.uint8),  # 3D
-        np.random.randint(
-            0, 65535, size=(2, 3, 32, 64), dtype=np.uint16
-        ),  # 4D CZYX
+        np.random.randint(0, 65535, size=(2, 3, 32, 64), dtype=np.uint16),  # 4D CZYX
     ],
 )
 def test_bioio_reader_preserves_data_values(tmp_path, original_data):
@@ -156,9 +148,7 @@ def test_bioio_reader_metadata_structure(tmp_path):
     test_file = create_test_image(tmp_path, "test_metadata.tif", test_data)
 
     layer_data_list = bioio_reader(str(test_file))
-    data, metadata, layer_type = assert_valid_napari_layer_data(
-        layer_data_list
-    )
+    data, metadata, layer_type = assert_valid_napari_layer_data(layer_data_list)
 
     assert metadata["name"] == "test_metadata", "Name should match file stem"
 
@@ -175,14 +165,10 @@ def test_bioio_reader_with_example_data(example_data_path):
         pytest.skip("Example data not available")
 
     layer_data_list = bioio_reader(str(example_data_path))
-    data, metadata, layer_type = assert_valid_napari_layer_data(
-        layer_data_list
-    )
+    data, metadata, layer_type = assert_valid_napari_layer_data(layer_data_list)
 
     assert data.ndim >= 2, "Should have at least 2 dimensions"
-    assert metadata["name"] == "em_20nm_z_40_145", (
-        "Name should match example data"
-    )
+    assert metadata["name"] == "em_20nm_z_40_145", "Name should match example data"
 
 
 # Edge case and exception handling tests

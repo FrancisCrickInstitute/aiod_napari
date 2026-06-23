@@ -131,9 +131,7 @@ def inference_widget(make_napari_viewer_proxy, base_dir, monkeypatch):
     overwritten with test-run values.
     """
     viewer = make_napari_viewer_proxy()
-    _, plugin_widget = viewer.window.add_plugin_dock_widget(
-        "aiod-napari", "Inference"
-    )
+    _, plugin_widget = viewer.window.add_plugin_dock_widget("aiod-napari", "Inference")
     monkeypatch.setattr(plugin_widget, "store_settings", lambda: None)
     return InferenceFixture(viewer=viewer, widget=plugin_widget)
 
@@ -170,9 +168,7 @@ class TestInferenceWorkflow:
         plugin_widget.subwidgets["model"].on_model_select()
 
         # Select variant
-        variant_dropdown = plugin_widget.subwidgets[
-            "model"
-        ].model_version_dropdown
+        variant_dropdown = plugin_widget.subwidgets["model"].model_version_dropdown
         variant_index = variant_dropdown.findText(variant)
         assert variant_index != -1, (
             f"Variant '{variant}' not found in dropdown options: "
@@ -216,12 +212,8 @@ class TestInferenceWorkflow:
 
         QTimer.singleShot(pipeline_timeout * 1000, on_timeout)
 
-        plugin_widget.subwidgets["nxf"].pipeline_finished.connect(
-            on_pipeline_finished
-        )
-        plugin_widget.subwidgets["nxf"].pipeline_failed.connect(
-            on_pipeline_failed
-        )
+        plugin_widget.subwidgets["nxf"].pipeline_finished.connect(on_pipeline_finished)
+        plugin_widget.subwidgets["nxf"].pipeline_failed.connect(on_pipeline_failed)
 
         def run_pipeline():
             plugin_widget.subwidgets["nxf"].nxf_run_btn.click()
