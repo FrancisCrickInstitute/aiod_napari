@@ -4,7 +4,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - python=3.11
+  - python=3.12
   - pyqt
   - napari>=0.6
   - numpy<2.0
@@ -19,6 +19,6 @@ dependencies:
     - tabulate
     - glasbey
     - dask-image
-    - git+https://github.com/FrancisCrickInstitute/ai-on-demand.git
-    - git+https://github.com/FrancisCrickInstitute/AIoD-Model-Registry.git
+    - git+https://github.com/FrancisCrickInstitute/aiod_napari.git
+    - git+https://github.com/FrancisCrickInstitute/aiod_registry.git
     - git+https://github.com/FrancisCrickInstitute/aiod_utils.git
