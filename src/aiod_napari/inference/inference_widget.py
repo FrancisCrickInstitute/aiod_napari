@@ -702,6 +702,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     _dims_meta is not None
                     and hasattr(_dims_meta, "order")
                     and "Z" in _dims_meta.order
+                    and end_z - 1 > 0
                 ):
                     self.viewer.dims.set_point(_dims_meta.order.index("Z"), end_z - 1)
                 else:
