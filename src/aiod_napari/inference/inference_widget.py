@@ -150,11 +150,14 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 )
             ).exists():
                 masks_exist.append(True)
+                # Used in create_mask_layers, which handles preprocessing sets
                 load_paths.append(img_dict["img_path"])
             # Otherwise, we need to run the pipeline
             else:
                 masks_exist.append(False)
-                img_paths.append(img_dict["img_path"])
+                # Used directly in img_list_fpath CSV, which does not account for multiple preprocessing sets
+                if img_dict["img_path"] not in img_paths:
+                    img_paths.append(img_dict["img_path"])
         # Proceed to run the pipeline if any masks are missing
         proceed = not all(masks_exist)
         # If we aren't proceeding, there should be no images without masks!
