@@ -142,25 +142,25 @@ Any preprocessing applied here is for visualization purposes only, only the orig
         self.btn_widget = QWidget()
         self.btn_layout = QGridLayout()
         # Add preview button
-        self.preview_btn = QPushButton("Preview Slice")
+        self.preview_btn = QPushButton("Apply to Slice")
         self.preview_btn.clicked.connect(partial(self.on_click_run, run_on_slice=True))
         self.preview_btn.setToolTip(
             format_tooltip(
-                "Preview the effect of the selected preprocessing options on the currently selected image (or first image layer if none selected)."
+                "Apply the selected preprocessing options to the current slice of the currently selected image (or first image layer if none selected)."
             )
         )
         self.btn_layout.addWidget(self.preview_btn, 0, 0, 1, 1)
         # Add a run button to apply the preprocessing entirely
-        self.prep_run_btn = QPushButton("Preview Stack")
+        self.prep_run_btn = QPushButton("Apply to Stack")
         self.prep_run_btn.clicked.connect(
             partial(self.on_click_run, run_on_slice=False)
         )
         self.prep_run_btn.setToolTip(
             format_tooltip(
                 """
-Apply the selected preprocessing options to the currently selected image (or first image layer if none selected).
+Apply the selected preprocessing options to the entire stack of the currently selected image (or first image layer if none selected).
 NOTE: This will run the computation locally and return an array in-memory, so be careful with larger images and/or expensive preprocessing.
-NOTE: The result is just for visualization, and will not be used in the Nextflow pipeline.
+NOTE: The result is just for visualization! Only the original image will be used in the Nextflow pipeline.
                 """
             )
         )
