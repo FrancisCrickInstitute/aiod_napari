@@ -58,6 +58,8 @@ Images can also be opened, or dragged into napari as normal. The selection will 
         self._total_loading = 0
         # Create container for image paths
         self.image_path_dict = {}
+        # Paths queued for loading but not yet successfully added to the viewer
+        self._pending_paths = {}
         # Do a quick check to see if the user has added any images already
         counter = 0
         if self.viewer.layers:
@@ -222,16 +224,20 @@ Images can also be opened, or dragged into napari as normal. The selection will 
         Loads the selected images into napari for viewing (in separate threads).
         """
         # Return if there's nothing to show
-        if len(self.image_path_dict) == 0:
+        if (
+            len(self.image_path_dict) == 0
+            and len(self._pending_paths) == 0
+            and not imgs_to_load
+        ):
             return
         if imgs_to_load is None:
-            # Check if there are images to load that haven't been already
+            # Check if there are images to load that haven't been already;
+            # include both confirmed-loaded and still-pending paths.
             viewer_imgs = [
                 Path(i.name).stem for i in self.viewer.layers if isinstance(i, Image)
             ]
-            imgs_to_load = [
-                v for k, v in self.image_path_dict.items() if k not in viewer_imgs
-            ]
+            all_known = {**self.image_path_dict, **self._pending_paths}
+            imgs_to_load = [v for k, v in all_known.items() if k not in viewer_imgs]
         # If giving paths, double-check they aren't already loaded somehow
         elif imgs_to_load:
             remove_fnames = []
@@ -251,19 +257,21 @@ Images can also be opened, or dragged into napari as normal. The selection will 
         self._total_loading = len(imgs_to_load)
 
         # Create separate thread worker to avoid blocking
-        @thread_worker(
-            connect={
-                "returned": self._add_image,
-                "finished": self._finished_loading,
-            }
-        )
+        @thread_worker
         def _load_image(fpath):
             # can't directly use viewer.open with plugin outside of main thread :(
             return aiod_io.load_image(fpath), Path(fpath)
 
-        # Load each image in a separate thread
+        # Load each image in a separate thread, connecting error handler per-worker
+        # so we know which path failed and can clean up _pending_paths accurately.
         for fpath in imgs_to_load:
-            _load_image(fpath)
+            worker = _load_image(fpath)
+            worker.returned.connect(self._add_image)
+            worker.finished.connect(self._finished_loading)
+            worker.errored.connect(
+                lambda exc, p=Path(fpath): self._on_load_error(exc, p)
+            )
+            worker.start()
         # NOTE: This does not work well for a directory of large images on a remote directory
         # But that would trigger loading GBs into memory over network, which is...undesirable
         self.loading_txt = f" (loading {len(imgs_to_load)} image{'s' if len(imgs_to_load) > 1 else ''}...)"
@@ -274,20 +282,33 @@ Images can also be opened, or dragged into napari as normal. The selection will 
         Adds an image to the viewer when loaded, using its filepath as the name.
         """
         bioio_img, fpath = res
-        # Add the image to the overall dict
+        # Move from pending to confirmed-loaded
+        self._pending_paths.pop(fpath.stem, None)
         self.image_path_dict[fpath.stem] = fpath
         layer_data = prepare_bioio_as_napari_layer(bioio_img, fpath)
         for i in layer_data:
             self.viewer.add_layer(Layer.create(*i))
+
+    def _on_load_error(self, exc: Exception, fpath: Path):
+        """Called when a thread worker fails to load an image.
+
+        Removes the path from ``_pending_paths`` so the file count stays
+        accurate and shows an error notification to the user.
+        """
+        self._pending_paths.pop(fpath.stem, None)
+        self.update_file_count()
+        from napari.utils.notifications import show_error
+
+        show_error(f"Failed to load '{fpath.name}': {exc}")
 
     def _finished_loading(self):
         """Called once per thread worker; emit images_loaded only when all images are done."""
         self.load_img_counter += 1
         if self.load_img_counter < self._total_loading:
             return
-        self.img_counts.setText(
-            self.img_counts.text().replace(self.loading_txt, " (all images loaded).")
-        )
+        # Refresh the count label – _pending_paths is now empty (success or error
+        # callbacks have already removed every entry).
+        self.update_file_count()
         # Ensure Nextflow subwidget knows everything is loaded to extract metadata
         self.parent.subwidgets["nxf"].all_loaded = True
         # Also reset the viewer itself to ensure images are visible
@@ -370,17 +391,21 @@ Images can also be opened, or dragged into napari as normal. The selection will 
         """
         # Reinitialise text
         txt = "Selected "
-        # Add paths to the overall list if specific ones need adding
+        # Stage new paths as pending – they are only promoted to image_path_dict
+        # once successfully loaded by _add_image.
         if paths is not None:
             for img_path in paths:
                 img_path = Path(img_path)
-                self.image_path_dict[img_path.stem] = img_path
+                self._pending_paths[img_path.stem] = img_path
+        # Count both confirmed-loaded and still-loading paths so the label is
+        # always accurate regardless of load success/failure.
+        all_paths = {**self.image_path_dict, **self._pending_paths}
         # If no files remaining, reset message and return
-        if len(self.image_path_dict) == 0:
+        if len(all_paths) == 0:
             self.img_counts.setText(self.init_file_msg)
             return
         # Get all the extensions in the path
-        extension_counts = Counter([i.suffix for i in self.image_path_dict.values()])
+        extension_counts = Counter([i.suffix for i in all_paths.values()])
         # Sort by highest and get the suffixes and their counts
         ext_counts = extension_counts.most_common()
         if len(ext_counts) > 1:
@@ -399,8 +424,9 @@ Images can also be opened, or dragged into napari as normal. The selection will 
         """
         Clears the selected directory and resets the image counts.
         """
-        # Reset selected images and their paths
+        # Reset selected images and their paths (including any still-loading ones)
         self.image_path_dict = {}
+        self._pending_paths = {}
         # Reset image count text
         self.img_counts.setText(self.init_file_msg)
         # Remove Image layers from napari viewer
