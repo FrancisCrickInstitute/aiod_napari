@@ -208,8 +208,6 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 mask_data = self._expand_mask_to_img_dims(
                     mask_data, img_layer, img_metadata
                 )
-                # After expansion, ndim matches img_layer, so use its scale directly.
-                mask_scale = img_layer.scale
                 # Check if the mask layer already exists
                 if layer_name in self.viewer.layers:
                     # If so, update the data just to make sure & ensure visible
