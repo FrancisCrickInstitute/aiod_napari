@@ -39,8 +39,8 @@ dependencies = [
     "tabulate",
     "glasbey",
     "dask-image",
-    "aiod_utils @ git+https://github.com/FrancisCrickInstitute/aiod_utils.git",
-    "aiod_registry @ git+https://github.com/FrancisCrickInstitute/aiod_registry.git",
+    "aiod_utils==0.1",
+    "aiod_registry==0.1",
 ]
 
 [project.urls]
