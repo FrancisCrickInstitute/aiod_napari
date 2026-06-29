@@ -150,11 +150,14 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 )
             ).exists():
                 masks_exist.append(True)
+                # Used in create_mask_layers, which handles preprocessing sets
                 load_paths.append(img_dict["img_path"])
             # Otherwise, we need to run the pipeline
             else:
                 masks_exist.append(False)
-                img_paths.append(img_dict["img_path"])
+                # Used directly in img_list_fpath CSV, which does not account for multiple preprocessing sets
+                if img_dict["img_path"] not in img_paths:
+                    img_paths.append(img_dict["img_path"])
         # Proceed to run the pipeline if any masks are missing
         proceed = not all(masks_exist)
         # If we aren't proceeding, there should be no images without masks!
@@ -205,8 +208,6 @@ Run segmentation/inference on selected images using one of the available pre-tra
                 mask_data = self._expand_mask_to_img_dims(
                     mask_data, img_layer, img_metadata
                 )
-                # After expansion, ndim matches img_layer, so use its scale directly.
-                mask_scale = img_layer.scale
                 # Check if the mask layer already exists
                 if layer_name in self.viewer.layers:
                     # If so, update the data just to make sure & ensure visible
@@ -699,6 +700,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     _dims_meta is not None
                     and hasattr(_dims_meta, "order")
                     and "Z" in _dims_meta.order
+                    and end_z - 1 > 0
                 ):
                     self.viewer.dims.set_point(_dims_meta.order.index("Z"), end_z - 1)
                 else:
