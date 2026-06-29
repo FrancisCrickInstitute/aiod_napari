@@ -39,8 +39,8 @@ dependencies = [
     "tabulate",
     "glasbey",
     "dask-image",
-    "aiod_utils @ git+https://github.com/FrancisCrickInstitute/aiod_utils.git",
-    "aiod_registry @ git+https://github.com/FrancisCrickInstitute/aiod_registry.git",
+    "aiod_utils==0.1",
+    "aiod_registry==0.1",
 ]
 
 [project.urls]
@@ -49,11 +49,23 @@ documentation = "https://franciscrickinstitute.github.io/aiod_docs/sections/fron
 source = "https://github.com/FrancisCrickInstitute/aiod_napari"
 
 [project.optional-dependencies]
+# Keep to allow for pip install -e ".[testing]"
 testing = [
     "tox",
     "pytest",  # https://docs.pytest.org/en/latest/contents.html
     "pytest-cov",  # https://pytest-cov.readthedocs.io/en/latest/
     "pytest-qt",  # https://pytest-qt.readthedocs.io/en/latest/
+    "napari",
+    "pyqt5",
+]
+
+# PEP 735 dependency group for uv use
+[dependency-groups]
+dev = [
+    "tox",
+    "pytest",
+    "pytest-cov",
+    "pytest-qt",
     "napari",
     "pyqt5",
 ]

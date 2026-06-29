@@ -58,6 +58,16 @@ testing = [
     { name = "tox" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "napari" },
+    { name = "pyqt5" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-qt" },
+    { name = "tox" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aiod-registry", git = "https://github.com/FrancisCrickInstitute/aiod_registry.git" },
@@ -82,6 +92,16 @@ requires-dist = [
     { name = "tox", marker = "extra == 'testing'" },
 ]
 provides-extras = ["testing"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "napari" },
+    { name = "pyqt5" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-qt" },
+    { name = "tox" },
+]
 
 [[package]]
 name = "aiod-registry"

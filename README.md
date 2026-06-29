@@ -1,6 +1,6 @@
 # AIoD Napari Plugin
 
-A Napari plugin, part of [AI OnDemand](https://github.com/FrancisCrickInstitute/AIoD-Model-Registry/wiki), to provide an accessible interface for running deep learning models on images via our [Nextflow pipeline](https://github.com/FrancisCrickInstitute/Segment-Flow).
+Napari plugin part of [AI OnDemand (AIoD)](https://franciscrickinstitute.github.io/aiod_docs) to provide an accessible interface for running deep learning models on images via our [Nextflow pipeline](https://github.com/FrancisCrickInstitute/Segment-Flow).
 
 ----------------------------------
 
@@ -9,6 +9,15 @@ This [napari] plugin was generated with [Cookiecutter] using [@napari]'s [cookie
 ## Installation
 
 See our latest installation information in our [documentation](https://franciscrickinstitute.github.io/aiod_docs/sections/front_ends/napari_plugin/#installation)!
+
+In general, you should see the [official Napari installation instructions](https://napari.org/stable/getting_started/installation.html#install-python-package) first to ensure Napari is installed with an appropriate Qt backend.
+
+### `uv`
+A `uv.lock` file is provided for smoother installation:
+
+```
+uv add aiod_napari
+```
 
 ### Conda
 We have also provided a conda environment file to install all the dependencies for this plugin. To install the environment, run the following command:
@@ -20,7 +29,7 @@ Note that when it comes to the installation of napari this may be preferable, de
 ## Usage
 For general usage of the plugin, see the [documentation](https://franciscrickinstitute.github.io/aiod_docs/sections/front_ends/napari_plugin/).
 
-For developers, see our [developer guide](developer_guide.md) for some tips on how to get started and contribute to the plugin.
+For developers, see our [developer guide](https://franciscrickinstitute.github.io/aiod_docs/sections/contributing/developing/) for some tips on how to get started and contribute to the plugin.
 
 ## Contributing
 
