@@ -733,7 +733,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             # TODO: Switch fully to Nextflow for this, allowing resume to handle reload
             for img_dict in parent.img_mask_info:
                 mask_root = parent._get_mask_layer_name(
-                    stem=img_dict["img_path"].stem,
+                    img_path=img_dict["img_path"],
                     executed=True,
                     truncate=False,
                     preprocess_str=img_dict["preprocess_str"],

@@ -131,7 +131,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
         for img_dict in self.img_mask_info:
             preprocess_str = img_dict["preprocess_str"]
             mask_layer_name = self._get_mask_layer_name(
-                img_dict["img_path"].stem,
+                img_dict["img_path"],
                 executed=True,
                 preprocess_str=preprocess_str,
             )
@@ -142,7 +142,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
             elif (
                 self.subwidgets["nxf"].mask_dir_path
                 / self._get_mask_name(
-                    img_dict["img_path"].stem,
+                    img_dict["img_path"],
                     extension=self._get_output_format(),
                     executed=True,
                     truncate=False,
@@ -178,7 +178,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
             )
             # Check if the mask file already exists
             mask_fpath = self.subwidgets["nxf"].mask_dir_path / self._get_mask_name(
-                img_dict["img_path"].stem,
+                img_dict["img_path"],
                 extension=self._get_output_format(),
                 executed=True,
                 truncate=False,
@@ -346,7 +346,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
             preprocess_strs = [None] * len(img_paths)
             all_img_paths = img_paths
             all_layer_names = [
-                self._get_mask_layer_name(Path(i).stem, executed=True)
+                self._get_mask_layer_name(i, executed=True)
                 for i in img_paths
             ]
         else:
@@ -368,7 +368,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
                             prep_set, to_save=True
                         )
                     layer_name = self._get_mask_layer_name(
-                        Path(img_paths[i]).stem,
+                        img_paths[i],
                         executed=True,
                         preprocess_str=suffix,
                     )
@@ -466,22 +466,23 @@ Run segmentation/inference on selected images using one of the available pre-tra
 
     def _get_mask_layer_name(
         self,
-        stem: str,
+        img_path,
         extension: str | None = None,
         executed: bool = False,
         include_hash: bool = True,
         truncate: bool = True,
         preprocess_str: str | None = None,
     ):
+        # Construct mask stem from the full image filename, matching the
+        # pipeline's getMaskName convention (uses file.name, not simpleName).
+        stem = Path(img_path).name
+        if preprocess_str:
+            stem = f"{stem}_{preprocess_str}.ome.zarr"
         # If executed, use the executed attributes in case the user has changed the selection since running the pipeline
         task_model_variant_name = self.subwidgets["model"].get_task_model_variant_name(
             executed
         )
-        if preprocess_str is not None:
-            fname = f"{stem}_{preprocess_str}_masks_{task_model_variant_name}"
-        else:
-            # Construct the mask layer name
-            fname = f"{stem}_masks_{task_model_variant_name}"
+        fname = f"{stem}_masks_{task_model_variant_name}"
         # Add the hash if requested
         if include_hash:
             if truncate:
@@ -526,14 +527,14 @@ Run segmentation/inference on selected images using one of the available pre-tra
 
     def _get_mask_name(
         self,
-        stem: str,
+        img_path,
         extension: str = "rle",
         executed=False,
         truncate=False,
         preprocess_str: str | None = None,
     ):
         mask_root = self._get_mask_layer_name(
-            stem=stem,
+            img_path=img_path,
             executed=executed,
             truncate=truncate,
             preprocess_str=preprocess_str,
@@ -725,7 +726,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
             preprocess_str = img_dict["preprocess_str"]
             # Get the mask layer name, considering any preprocessing
             mask_layer_name = self._get_mask_layer_name(
-                img_dict["img_path"].stem,
+                img_dict["img_path"],
                 executed=True,
                 preprocess_str=preprocess_str,
             )
@@ -735,7 +736,7 @@ Run segmentation/inference on selected images using one of the available pre-tra
             )
             # Load the mask
             fpath = self.subwidgets["nxf"].mask_dir_path / self._get_mask_name(
-                img_dict["img_path"].stem,
+                img_dict["img_path"],
                 extension=self._get_output_format(),
                 executed=True,
                 truncate=False,
