@@ -7,6 +7,7 @@ from aiod_utils.preprocess import (
     get_all_preprocess_methods,
     get_downsample_factor,
     get_params_str,
+    hash_params_str,
     run_preprocess,
 )
 from napari.utils.notifications import show_error, show_info, show_warning
@@ -27,6 +28,29 @@ from qtpy.QtWidgets import (
 
 from aiod_napari.utils import ConfirmDialog, format_tooltip
 from aiod_napari.widget_classes import SubWidget
+
+
+def format_preprocess_legend(preprocess_sets: list[list[dict]] | None) -> str:
+    """
+    Human-readable "Set N [prep_hash]:\n\trecipe" to make it clear
+    what sets are used and what hash they relate to.
+    """
+    if not preprocess_sets:
+        return "No saved preprocessing sets!"
+    lines = []
+    for i, pp_set in enumerate(preprocess_sets):
+        if not pp_set:
+            lines.append(f"Set {i + 1} (no hash):")
+            lines.append("  No preprocessing")
+        else:
+            prep_hash = hash_params_str(get_params_str(pp_set, to_save=True))
+            lines.append(f"Set {i + 1} [{prep_hash}]:")
+            for pp in pp_set:
+                lines.append(f"  {pp['name']}:")
+                for param, value in pp["params"].items():
+                    lines.append(f"    {param}: {value}")
+        lines.append("")
+    return "\n".join(lines)
 
 
 class PreprocessWidget(SubWidget):
@@ -70,6 +94,10 @@ Any preprocessing applied here is for visualization purposes only, only the orig
         self.preprocess_order = QLineEdit()
         self.preprocess_order.setReadOnly(True)
         self.preprocess_order.setText(self.init_order)
+        # Shows the preprocessing recipe of selected mask layer
+        self.selected_layer_label = QLabel("Selected layer preprocessing:")
+        self.selected_layer_prep = QLabel()
+        self.selected_layer_prep.setWordWrap(True)
         # Go through each method, creating a box and populating the UI elements for each parameter
         for name, d in self.preprocess_methods.items():
             group_box = QGroupBox(name)
@@ -136,8 +164,15 @@ Any preprocessing applied here is for visualization purposes only, only the orig
         # Add text box to show current order of preprocessing
         self.order_layout.addWidget(self.order_label, 0, 0, 1, 1)
         self.order_layout.addWidget(self.preprocess_order, 0, 1, 1, 3)
+        # Add text box showing the selected layer's own preprocessing recipe
+        self.order_layout.addWidget(self.selected_layer_label, 1, 0, 1, 1)
+        self.order_layout.addWidget(self.selected_layer_prep, 1, 1, 1, 3)
         self.order_widget.setLayout(self.order_layout)
         self.inner_layout.addWidget(self.order_widget)
+        self._update_selected_layer_prep()
+        self.viewer.layers.selection.events.changed.connect(
+            self._update_selected_layer_prep
+        )
         # Create separate layout for buttons to be cleaner
         self.btn_widget = QWidget()
         self.btn_layout = QGridLayout()
@@ -415,21 +450,23 @@ NOTE: The result is just for visualization! Only the original image will be used
         count = len(self.preprocess_sets)
         self.view_sets_btn.setText(f"View saved sets ({count})")
 
-    def on_click_preprocess_view(self):
-        display_text = ""
-        if len(self.preprocess_sets) == 0:
-            display_text = "No saved preprocessing sets!"
+    def _update_selected_layer_prep(self):
+        # Grab selected layer and check eligibility
+        layer = self.viewer.layers.selection.active
+        has_prep_metadata = (
+            isinstance(layer, napari.layers.Labels)
+            and layer.metadata
+            and "preprocess_str" in layer.metadata
+        )
+        # Set the preprocessing str accordingly
+        if has_prep_metadata:
+            preprocess_str = layer.metadata["preprocess_str"]
+            self.selected_layer_prep.setText(preprocess_str or "No preprocessing")
         else:
-            for i, pp_set in enumerate(self.preprocess_sets):
-                display_text += f"Set {i + 1}:\n"
-                if not pp_set:
-                    display_text += "  No preprocessing\n"
-                else:
-                    for pp in pp_set:
-                        display_text += f"  {pp['name']}:\n"
-                        for param, value in pp["params"].items():
-                            display_text += f"    {param}: {value}\n"
-                display_text += "\n"
+            self.selected_layer_prep.setText("")
+
+    def on_click_preprocess_view(self):
+        display_text = format_preprocess_legend(self.preprocess_sets)
         # Create a dialog to display the text
         self.preprocess_set_popout = PreprocessSetWindow(
             self, preprocess_txt=display_text
