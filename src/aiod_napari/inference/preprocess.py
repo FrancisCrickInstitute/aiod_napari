@@ -51,6 +51,28 @@ def _style_spinbox(spinbox: QSpinBox | QDoubleSpinBox):
     )
 
 
+def _configure_spinbox(
+    spinbox: QSpinBox | QDoubleSpinBox, param_dict: dict, value: int | float
+):
+    """Bound a spin box to its parameter's domain, then give it its value.
+
+    Left alone, a spin box inherits Qt's defaults of 0-99 (0-99.99 with two
+    decimals for floats). That refuses legitimate values, and lets the user
+    dial in a zero that the underlying function rejects. Bounds come from the
+    parameter metadata in aiod_utils; the fallbacks are permissive, so a
+    parameter that declares none is no worse off than before.
+    """
+    # Precision has to be set before the value, or anything finer than Qt's
+    # default two decimal places is rounded away and cannot be recovered
+    if isinstance(spinbox, QDoubleSpinBox):
+        spinbox.setDecimals(param_dict.get("decimals", 2))
+    spinbox.setRange(param_dict.get("min", 0), param_dict.get("max", 10_000))
+    spinbox.setSingleStep(param_dict.get("step", 1))
+    spinbox.setValue(value)
+    # Box width is derived from the bounds, so this has to come last
+    _style_spinbox(spinbox)
+
+
 class PreprocessWidget(SubWidget):
     _name = "preprocess"
 
@@ -155,8 +177,7 @@ Any preprocessing applied here is for visualization purposes only, only the orig
                         if isinstance(param_dict["default"], int)
                         else QDoubleSpinBox()
                     )
-                    widget.setValue(param_dict["default"])
-                    _style_spinbox(widget)
+                    _configure_spinbox(widget, param_dict, param_dict["default"])
                     param_row.addWidget(widget)
                 # Get cleaner representation of list/tuple (avoid () & [])
                 elif isinstance(defaults := param_dict["default"], (list, tuple)):
@@ -166,8 +187,7 @@ Any preprocessing applied here is for visualization purposes only, only the orig
                             subwidget = (
                                 QSpinBox() if isinstance(val, int) else QDoubleSpinBox()
                             )
-                            subwidget.setValue(val)
-                            _style_spinbox(subwidget)
+                            _configure_spinbox(subwidget, param_dict, val)
                         elif isinstance(val, str):
                             subwidget = QLineEdit()
                             subwidget.setText(val)
