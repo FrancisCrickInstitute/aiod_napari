@@ -51,6 +51,36 @@ def _style_spinbox(spinbox: QSpinBox | QDoubleSpinBox):
     )
 
 
+def _configure_spinbox(
+    spinbox: QSpinBox | QDoubleSpinBox, param_dict: dict, value: int | float
+):
+    """Bound a spin box to its parameter's domain, then give it its value.
+
+    Left alone, a spin box inherits Qt's defaults of 0-99 (0-99.99 with two
+    decimals for floats). That refuses legitimate values, and lets the user
+    dial in a zero that the underlying function rejects. Bounds come from the
+    parameter metadata in aiod_utils; the fallbacks are permissive, so a
+    parameter that declares none is no worse off than before.
+    """
+    # Precision has to be set before the value, or anything finer than Qt's
+    # default two decimal places is rounded away and cannot be recovered
+    if isinstance(spinbox, QDoubleSpinBox):
+        spinbox.setDecimals(param_dict.get("decimals", 2))
+    spinbox.setRange(param_dict.get("min", 0), param_dict.get("max", 10_000))
+    spinbox.setSingleStep(param_dict.get("step", 1))
+    spinbox.setValue(value)
+    # Box width is derived from the bounds, so this has to come last
+    _style_spinbox(spinbox)
+
+
+def _set_widget_value(widget, value):
+    """Write a value into whichever widget type a list-backed param uses."""
+    if isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+        widget.setValue(value)
+    elif isinstance(widget, QLineEdit):
+        widget.setText(str(value))
+
+
 class PreprocessWidget(SubWidget):
     _name = "preprocess"
 
@@ -155,8 +185,7 @@ Any preprocessing applied here is for visualization purposes only, only the orig
                         if isinstance(param_dict["default"], int)
                         else QDoubleSpinBox()
                     )
-                    widget.setValue(param_dict["default"])
-                    _style_spinbox(widget)
+                    _configure_spinbox(widget, param_dict, param_dict["default"])
                     param_row.addWidget(widget)
                 # Get cleaner representation of list/tuple (avoid () & [])
                 elif isinstance(defaults := param_dict["default"], (list, tuple)):
@@ -166,8 +195,7 @@ Any preprocessing applied here is for visualization purposes only, only the orig
                             subwidget = (
                                 QSpinBox() if isinstance(val, int) else QDoubleSpinBox()
                             )
-                            subwidget.setValue(val)
-                            _style_spinbox(subwidget)
+                            _configure_spinbox(subwidget, param_dict, val)
                         elif isinstance(val, str):
                             subwidget = QLineEdit()
                             subwidget.setText(val)
@@ -312,11 +340,17 @@ NOTE: The result is just for visualization! Only the original image will be used
 
                 # Disable specific list indices that are only meaningful for 3D
                 if "3d_only_indices" in param_def and isinstance(widget, list):
+                    applies = state in ("3d", "any")
                     for idx in param_def["3d_only_indices"]:
-                        if idx < len(widget):
-                            widget[idx].setEnabled(
-                                state in ("3d", "any") and boxes["box"].isChecked()
-                            )
+                        if idx >= len(widget):
+                            continue
+                        widget[idx].setEnabled(applies and boxes["box"].isChecked())
+                        # A disabled spin box keeps its value and extract_options
+                        # still reads it, so reset anything this dimensionality
+                        # cannot honour. Keyed on the dimensionality alone: an
+                        # unticked box is disabled too, and must keep its value.
+                        if not applies:
+                            _set_widget_value(widget[idx], param_def["default"][idx])
 
                 # Restrict combo values to those valid for the current dimensionality
                 if "values_by_dim" in param_def and isinstance(widget, QComboBox):
@@ -555,10 +589,7 @@ NOTE: The result is just for visualization! Only the original image will be used
                 default = param_dict["default"]
                 if isinstance(widget, list):
                     for w, val in zip(widget, default):
-                        if isinstance(w, (QSpinBox, QDoubleSpinBox)):
-                            w.setValue(val)
-                        elif isinstance(w, QLineEdit):
-                            w.setText(str(val))
+                        _set_widget_value(w, val)
                 elif isinstance(widget, QCheckBox):
                     widget.setChecked(False)
                 elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
@@ -628,10 +659,7 @@ NOTE: The result is just for visualization! Only the original image will be used
                 widget = self.preprocess_boxes[name]["params"][param_name]
                 if isinstance(widget, list):
                     for w, val in zip(widget, value):
-                        if isinstance(w, (QSpinBox, QDoubleSpinBox)):
-                            w.setValue(val)
-                        elif isinstance(w, QLineEdit):
-                            w.setText(str(val))
+                        _set_widget_value(w, val)
                 elif isinstance(widget, QCheckBox):
                     widget.setChecked(bool(value))
                 elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
