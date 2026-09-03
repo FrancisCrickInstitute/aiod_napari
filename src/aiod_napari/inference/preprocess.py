@@ -28,8 +28,27 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from aiod_napari.utils import ConfirmDialog, format_tooltip
+from aiod_napari.utils import ConfirmDialog, find_image_layer, format_tooltip
 from aiod_napari.widget_classes import SubWidget
+
+# Need some width to account for -+ step buttons
+_SPIN_BUTTON_WIDTH = 20
+
+
+def _style_spinbox(spinbox: QSpinBox | QDoubleSpinBox):
+    """Centre a spin box's value and keep it narrow, but wide enough to show any value."""
+    spinbox.setAlignment(qtpy.QtCore.Qt.AlignCenter)
+    # Grab the max text width from the box's min/max values
+    text_width = max(
+        spinbox.fontMetrics().horizontalAdvance(spinbox.textFromValue(value))
+        for value in (spinbox.minimum(), spinbox.maximum())
+    )
+    spinbox.setStyleSheet(
+        "QAbstractSpinBox {"
+        f" min-width: {text_width + 2 * _SPIN_BUTTON_WIDTH}px;"
+        " padding: 1px 2px;"
+        " }"
+    )
 
 
 class PreprocessWidget(SubWidget):
@@ -54,6 +73,9 @@ class PreprocessWidget(SubWidget):
         # Container for multiple sets of preprocessing options
         self.preprocess_sets = []
 
+        # Store the current dim state so it can be re-applied after group-box toggles
+        self._current_dim_state: str = "any"
+
         super().__init__(
             viewer=viewer,
             title="Preprocessing",
@@ -74,7 +96,15 @@ Any preprocessing applied here is for visualization purposes only, only the orig
         self.preprocess_order.setReadOnly(True)
         self.preprocess_order.setText(self.init_order)
 
-        _min_spin_width = "35px"
+        # Warning label shown when registered images have mixed spatial dimensions
+        self.dim_warning_label = QLabel(
+            "\u26a0 Mixed image dimensions detected — dimension-dependent preprocessing (Downsample D factor, Filter) is disabled."
+        )
+        self.dim_warning_label.setWordWrap(True)
+        self.dim_warning_label.setStyleSheet("color: orange;")
+        self.dim_warning_label.setVisible(False)
+        self.inner_layout.addWidget(self.dim_warning_label)
+
         # Go through each method, creating a box and populating the UI elements for each parameter
         for name, d in self.preprocess_methods.items():
             group_box = QGroupBox(name)
@@ -126,7 +156,7 @@ Any preprocessing applied here is for visualization purposes only, only the orig
                         else QDoubleSpinBox()
                     )
                     widget.setValue(param_dict["default"])
-                    widget.setStyleSheet(f"min-width: {_min_spin_width}")
+                    _style_spinbox(widget)
                     param_row.addWidget(widget)
                 # Get cleaner representation of list/tuple (avoid () & [])
                 elif isinstance(defaults := param_dict["default"], (list, tuple)):
@@ -134,12 +164,10 @@ Any preprocessing applied here is for visualization purposes only, only the orig
                     for val in defaults:
                         if isinstance(val, (int, float)):
                             subwidget = (
-                                QSpinBox()
-                                if isinstance(val, int)
-                                else QDoubleSpinBox()
+                                QSpinBox() if isinstance(val, int) else QDoubleSpinBox()
                             )
                             subwidget.setValue(val)
-                            subwidget.setStyleSheet(f"min-width: {_min_spin_width}")
+                            _style_spinbox(subwidget)
                         elif isinstance(val, str):
                             subwidget = QLineEdit()
                             subwidget.setText(val)
@@ -222,6 +250,87 @@ NOTE: The result is just for visualization! Only the original image will be used
         # Set the layout for the widget
         self.btn_widget.setLayout(self.btn_layout)
         self.inner_layout.addWidget(self.btn_widget)
+        # Connect to data widget signals for dimension-aware UI updates
+        self._connect_dim_signals()
+
+    def _connect_dim_signals(self):
+        """Connect to data widget and viewer layer events for dimension-aware UI updates."""
+        data_widget = getattr(self.parent, "subwidgets", {}).get("data")
+        if data_widget is None:
+            return
+        data_widget.images_loaded.connect(self._update_dim_state)
+        # Also catch drag-and-drop and other non-UI-button load paths
+        self.viewer.layers.events.inserted.connect(lambda _: self._update_dim_state())
+        self.viewer.layers.events.removed.connect(lambda _: self._update_dim_state())
+        # Apply to any images already present when the widget is created
+        self._update_dim_state()
+
+    def _update_dim_state(self):
+        """Check spatial dimensionality of registered images and update the UI."""
+        data_widget = getattr(self.parent, "subwidgets", {}).get("data")
+        if data_widget is None:
+            return
+        if not data_widget.image_path_dict:
+            self._apply_dim_state("any")
+            return
+        # Match on the layer's source path, as layer names are user-editable.
+        # Preprocessing previews have no path, so are excluded by find_image_layer.
+        ndims = set()
+        for img_path in data_widget.image_path_dict.values():
+            layer = find_image_layer(self.viewer, img_path)
+            if layer is not None:
+                ndims.add(layer.data.ndim)
+        if not ndims:
+            # Registered images aren't in the viewer yet — don't change state
+            return
+        if all(n == 2 for n in ndims):
+            state = "2d"
+        elif all(n >= 3 for n in ndims):
+            state = "3d"
+        else:
+            state = "mixed"
+        self._apply_dim_state(state)
+
+    def _apply_dim_state(self, state: str):
+        """Update dimension-dependent widgets based on state ('2d', '3d', 'mixed', 'any')."""
+        self._current_dim_state = state
+        is_mixed = state == "mixed"
+        self.dim_warning_label.setVisible(is_mixed)
+
+        for name, boxes in self.preprocess_boxes.items():
+            cls = self.preprocess_methods[name]["object"]
+            requires_uniform = getattr(cls, "requires_uniform_dims", False)
+
+            if is_mixed and requires_uniform:
+                boxes["box"].setEnabled(False)
+                continue
+
+            boxes["box"].setEnabled(True)
+
+            for param_name, widget in boxes["params"].items():
+                param_def = self.preprocess_methods[name]["params"][param_name]
+
+                # Disable specific list indices that are only meaningful for 3D
+                if "3d_only_indices" in param_def and isinstance(widget, list):
+                    for idx in param_def["3d_only_indices"]:
+                        if idx < len(widget):
+                            widget[idx].setEnabled(
+                                state in ("3d", "any") and boxes["box"].isChecked()
+                            )
+
+                # Restrict combo values to those valid for the current dimensionality
+                if "values_by_dim" in param_def and isinstance(widget, QComboBox):
+                    valid = (
+                        param_def["values"]
+                        if state == "any"
+                        else param_def["values_by_dim"].get(state, param_def["values"])
+                    )
+                    current = widget.currentText()
+                    widget.clear()
+                    for v in param_def["values"]:
+                        if v in valid:
+                            widget.addItem(v)
+                    widget.setCurrentIndex(max(widget.findText(current), 0))
 
     def on_click_preprocess(self, name: str):
         # Callback for when a preprocess method is selected
@@ -246,6 +355,8 @@ NOTE: The result is just for visualization! Only the original image will be used
                 else:
                     order = "->".join(self.order_list)
             self.preprocess_order.setText(order)
+            # QGroupBox.setChecked re-enables all children; re-apply dim restrictions
+            self._apply_dim_state(self._current_dim_state)
 
         # Return the callback
         return cb
@@ -351,11 +462,17 @@ NOTE: The result is just for visualization! Only the original image will be used
                 # Extract the value based on the widget type
                 if isinstance(widget, list):
                     # Multiple spinboxes/lineedits for a list/tuple param
-                    internal_dtype = type(method_dict["params"][param_name]["default"][0])
+                    internal_dtype = type(
+                        method_dict["params"][param_name]["default"][0]
+                    )
                     # NOTE: We always cast to list to avoid '!!python/tuple' pyyaml tag
                     # As this cannot be loaded by the yaml.safe_load function
                     option_dict["params"][param_name] = [
-                        internal_dtype(w.value() if isinstance(w, (QSpinBox, QDoubleSpinBox)) else w.text())
+                        internal_dtype(
+                            w.value()
+                            if isinstance(w, (QSpinBox, QDoubleSpinBox))
+                            else w.text()
+                        )
                         for w in widget
                     ]
                 elif isinstance(widget, QCheckBox):

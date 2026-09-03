@@ -149,6 +149,22 @@ def get_image_layer_path(
         return Path(img_path)
 
 
+def find_image_layer(viewer, img_path: Path) -> Image | None:
+    """
+    Find the Image layer displaying the given file (`img_path`).
+
+    Matches on the layer's metadata path rather than its name,
+    as napari/users can modify layer names
+    """
+    img_path = Path(img_path)
+    for layer in viewer.layers:
+        if not isinstance(layer, Image):
+            continue
+        if get_image_layer_path(layer) == img_path:
+            return layer
+    return None
+
+
 def get_img_dims(
     layer: Image, img_path: Path | None = None, verbose: bool = True
 ) -> tuple[int, int, int, int | None]:
