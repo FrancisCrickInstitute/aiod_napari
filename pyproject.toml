@@ -55,8 +55,7 @@ testing = [
     "pytest",  # https://docs.pytest.org/en/latest/contents.html
     "pytest-cov",  # https://pytest-cov.readthedocs.io/en/latest/
     "pytest-qt",  # https://pytest-qt.readthedocs.io/en/latest/
-    "napari",
-    "pyqt5",
+    "napari[qt]",
 ]
 
 # Enable editable installs from other AIoD repos in expected structure
@@ -72,8 +71,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "pytest-qt",
-    "napari",
-    "pyqt5",
+    "napari[qt]",
 ]
 
 [project.entry-points."napari.manifest"]

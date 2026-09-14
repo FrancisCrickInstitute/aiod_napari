@@ -30,5 +30,15 @@ For general usage of the plugin, see the [documentation](https://franciscrickins
 ## Contributing
 Contributions are very welcome! Please see our [AIoD Developer Guide](https://franciscrickinstitute.github.io/aiod_docs/sections/contributing/developing/) for general advice and information.
 
+### Development setup
+Install with test dependencies using either:
+
+```bash
+uv sync                        # uv dependency group (dev)
+pip install -e ".[testing]"    # pip/tox extra (testing)
+```
+
+Both install the same test dependencies (pytest, tox, `napari[qt]`, ...), but allow for either `uv` or plain `pip`/tox workflows. (Note that, at present, the CI uses the `testing` extra via tox.)
+
 ## Issues
 If you encounter any problems, please raise an issue along with a detailed description!
