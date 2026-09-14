@@ -2,12 +2,7 @@
 
 Napari plugin part of [AI OnDemand (AIoD)](https://franciscrickinstitute.github.io/aiod_docs) to provide an accessible interface for running deep learning models on images via our [Nextflow pipeline](https://github.com/FrancisCrickInstitute/Segment-Flow).
 
-----------------------------------
-
-This [napari] plugin was generated with [Cookiecutter] using [@napari]'s [cookiecutter-napari-plugin] template.
-
 ## Installation
-
 See our latest installation information in our [documentation](https://franciscrickinstitute.github.io/aiod_docs/sections/front_ends/napari_plugin/#installation)!
 
 In general, you should see the [official Napari installation instructions](https://napari.org/stable/getting_started/installation.html#install-python-package) first to ensure Napari is installed with an appropriate Qt backend.
@@ -15,26 +10,25 @@ In general, you should see the [official Napari installation instructions](https
 ### `uv`
 A `uv.lock` file is provided for smoother installation:
 
-```
+```bash
 uv add aiod_napari
 ```
 
 ### Conda
 We have also provided a conda environment file to install all the dependencies for this plugin. To install the environment, run the following command:
 
-    conda env create -f ai-od.yml
+```bash
+conda env create -f ai-od.yml
+```
 
-Note that when it comes to the installation of napari this may be preferable, depending on whether your system is best supported by the pip- or conda-packaged version.
+## Getting Started
+For a step-by-step walkthrough, please see our [First Segmentation guide](https://franciscrickinstitute.github.io/aiod_docs/sections/getting_started/first_segmentation/).
 
 ## Usage
 For general usage of the plugin, see the [documentation](https://franciscrickinstitute.github.io/aiod_docs/sections/front_ends/napari_plugin/).
 
-For developers, see our [developer guide](https://franciscrickinstitute.github.io/aiod_docs/sections/contributing/developing/) for some tips on how to get started and contribute to the plugin.
-
 ## Contributing
-
-Contributions are very welcome. Tests can be run with [tox], please ensure the coverage at least stays the same before you submit a pull request.
+Contributions are very welcome! Please see our [AIoD Developer Guide](https://franciscrickinstitute.github.io/aiod_docs/sections/contributing/developing/) for general advice and information.
 
 ## Issues
-
-If you encounter any problems, please raise an issue along with a detailed description.
+If you encounter any problems, please raise an issue along with a detailed description!
