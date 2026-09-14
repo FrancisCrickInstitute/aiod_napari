@@ -74,6 +74,50 @@ def format_preprocess_legend(preprocess_sets: list[list[dict]] | None) -> str:
         lines.append("")
     return "\n".join(lines)
 
+def _configure_spinbox(
+    spinbox: QSpinBox | QDoubleSpinBox, param_dict: dict, value: int | float
+):
+    """Bound a spin box to its parameter's domain, then give it its value.
+
+    Bounds come from the aiod_utils param metadata; the fallbacks are
+    permissive, so a parameter that declares none behaves as it did.
+    """
+    # Decimals before value: setValue rounds to the current precision
+    if isinstance(spinbox, QDoubleSpinBox):
+        spinbox.setDecimals(param_dict.get("decimals", 2))
+    spinbox.setRange(param_dict.get("min", 0), param_dict.get("max", 10_000))
+    spinbox.setSingleStep(param_dict.get("step", 1))
+    spinbox.setValue(value)
+    # Box width is derived from the bounds, so this has to come last
+    _style_spinbox(spinbox)
+
+
+def _set_widget_value(widget, value):
+    """Write a value into whichever widget type a list-backed param uses."""
+    if isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+        widget.setValue(value)
+    elif isinstance(widget, QLineEdit):
+        widget.setText(str(value))
+
+
+def _align_list_values(widgets: list, value, param_def: dict) -> list | None:
+    """Line a saved list value up with the widgets, or None if it cannot fit.
+
+    A short value omits the dimension-specific entries, not the trailing ones:
+    aiod_utils reads a 2-element block_size as (H, W).
+    """
+    if len(value) == len(widgets):
+        return list(value)
+    optional = param_def.get("3d_only_indices", [])
+    if len(value) + len(optional) != len(widgets):
+        return None
+    aligned = list(param_def["default"])
+    given = iter(value)
+    for i in range(len(widgets)):
+        if i not in optional:
+            aligned[i] = next(given)
+    return aligned
+
 
 class PreprocessWidget(SubWidget):
     _name = "preprocess"
@@ -170,8 +214,7 @@ Any preprocessing applied here is for visualization purposes only, only the orig
                         if isinstance(param_dict["default"], int)
                         else QDoubleSpinBox()
                     )
-                    widget.setValue(param_dict["default"])
-                    _style_spinbox(widget)
+                    _configure_spinbox(widget, param_dict, param_dict["default"])
                     param_row.addWidget(widget)
                 # Get cleaner representation of list/tuple (avoid () & [])
                 elif isinstance(defaults := param_dict["default"], (list, tuple)):
@@ -181,8 +224,7 @@ Any preprocessing applied here is for visualization purposes only, only the orig
                             subwidget = (
                                 QSpinBox() if isinstance(val, int) else QDoubleSpinBox()
                             )
-                            subwidget.setValue(val)
-                            _style_spinbox(subwidget)
+                            _configure_spinbox(subwidget, param_dict, val)
                         elif isinstance(val, str):
                             subwidget = QLineEdit()
                             subwidget.setText(val)
@@ -273,29 +315,27 @@ NOTE: The result is just for visualization! Only the original image will be used
         self.btn_widget.setLayout(self.btn_layout)
         self.inner_layout.addWidget(self.btn_widget)
 
+    def _sync_order(self, name: str, checked: bool):
+        """Add or remove a method from the preprocessing order, and redraw the label.
+
+        None rather than an empty list means "nothing selected"; extract_options
+        and get_all_options both key off that.
+        """
+        order_list = self.order_list or []
+        if checked:
+            if name not in order_list:
+                order_list.append(name)
+        elif name in order_list:
+            order_list.remove(name)
+        self.order_list = order_list or None
+        self.preprocess_order.setText(
+            "->".join(order_list) if order_list else self.init_order
+        )
+
     def on_click_preprocess(self, name: str):
         # Callback for when a preprocess method is selected
         def cb():
-            # Get the box to check if it is checked
-            group_box = self.preprocess_boxes[name]["box"]
-            checked = group_box.isChecked()
-            order = self.preprocess_order.text()
-            if order == self.init_order:
-                order = name
-                self.order_list = [name]
-            else:
-                self.order_list = order.split("->")
-                # If checked, add to the start of the list
-                if checked:
-                    self.order_list.append(name)
-                else:
-                    self.order_list.remove(name)
-                # Handle when all are unchecked
-                if len(self.order_list) == 0:
-                    order = self.init_order
-                else:
-                    order = "->".join(self.order_list)
-            self.preprocess_order.setText(order)
+            self._sync_order(name, self.preprocess_boxes[name]["box"].isChecked())
 
         # Return the callback
         return cb
@@ -344,19 +384,6 @@ NOTE: The result is just for visualization! Only the original image will be used
             # Get the current slice
             if run_on_slice:
                 image = data[self.viewer.dims.current_step[0]]
-                # As the preview is for 2D only, remap 3D-specific options to 2D if needed
-                for option in options:
-                    if option["name"] == "Filter":
-                        footprint = option["params"]["footprint"]
-                        if footprint == "cube":
-                            option["params"]["footprint"] = "square"
-                        elif footprint == "ball":
-                            option["params"]["footprint"] = "disk"
-                        # Show info if changed
-                        if footprint != option["params"]["footprint"]:
-                            show_info(
-                                f"Changed Filter footprint to {option['params']['footprint']} from {footprint} for 2D preview."
-                            )
             else:
                 image = data
         else:
@@ -493,11 +520,8 @@ NOTE: The result is just for visualization! Only the original image will be used
                 param_dict = self.preprocess_methods[name]["params"][param_name]
                 default = param_dict["default"]
                 if isinstance(widget, list):
-                    for w, val in zip(widget, default):
-                        if isinstance(w, (QSpinBox, QDoubleSpinBox)):
-                            w.setValue(val)
-                        elif isinstance(w, QLineEdit):
-                            w.setText(str(val))
+                    for w, val in zip(widget, default, strict=True):
+                        _set_widget_value(w, val)
                 elif isinstance(widget, QCheckBox):
                     widget.setChecked(False)
                 elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
@@ -568,11 +592,16 @@ NOTE: The result is just for visualization! Only the original image will be used
             for param_name, value in params.items():
                 widget = self.preprocess_boxes[name]["params"][param_name]
                 if isinstance(widget, list):
-                    for w, val in zip(widget, value):
-                        if isinstance(w, (QSpinBox, QDoubleSpinBox)):
-                            w.setValue(val)
-                        elif isinstance(w, QLineEdit):
-                            w.setText(str(val))
+                    param_def = self.preprocess_methods[name]["params"][param_name]
+                    aligned = _align_list_values(widget, value, param_def)
+                    if aligned is None:
+                        show_warning(
+                            f"{name}: {param_name} needs {len(widget)} values but "
+                            f"the config has {len(value)}, keeping the defaults."
+                        )
+                    else:
+                        for w, val in zip(widget, aligned, strict=True):
+                            _set_widget_value(w, val)
                 elif isinstance(widget, QCheckBox):
                     widget.setChecked(bool(value))
                 elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
