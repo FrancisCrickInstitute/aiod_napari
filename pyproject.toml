@@ -39,8 +39,8 @@ dependencies = [
     "tabulate",
     "glasbey",
     "dask-image",
-    "aiod_utils==0.1",
-    "aiod_registry==0.1",
+    "aiod_utils>=0.2",
+    "aiod_registry>=0.2",
 ]
 
 [project.urls]
@@ -57,6 +57,9 @@ testing = [
     "pytest-qt",  # https://pytest-qt.readthedocs.io/en/latest/
     "napari[qt]",
 ]
+
+[tool.uv]
+exclude-newer-package = { aiod_utils = false, aiod_registry = false }
 
 # Enable editable installs from other AIoD repos in expected structure
 # `uv sync --no-sources` resolves those pins from PyPI instead
