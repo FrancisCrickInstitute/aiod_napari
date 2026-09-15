@@ -1,0 +1,139 @@
+# .github/workflows/bump_nxf_rev.yml
+#
+# What it does:
+#   1. Receives a repository_dispatch event from Segment-Flow when it publishes a release
+#   2. Patches DEFAULT_NXF_REV in src/aiod_napari/inference/nxf.py to the new tag
+#   3. Opens a PR for human review using the gh CLI
+#
+# Can also be run manually (workflow_dispatch) with an explicit tag, e.g. to
+# backfill a release that predates this workflow.
+
+name: Bump Segment-Flow revision
+
+on:
+  repository_dispatch:
+    types: [segment-flow-released]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Segment-Flow tag to pin (e.g. 0.2.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  NXF_FILE: src/aiod_napari/inference/nxf.py
+  SEGMENT_FLOW_REPO: FrancisCrickInstitute/Segment-Flow
+
+jobs:
+  bump-nxf-rev:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Resolve and validate tag
+        id: resolve
+        env:
+          RAW_TAG: ${{ github.event.client_payload.tag || inputs.tag }}
+        run: |
+          # Segment-Flow follows the nf-core/SemVer convention of no v prefix,
+          # but tolerate one in case a release is ever tagged that way
+          TAG="${RAW_TAG#v}"
+
+          if [ -z "$TAG" ]; then
+            echo "::error::No tag supplied in the dispatch payload or workflow input."
+            exit 1
+          fi
+
+          # The payload comes from another repo, so don't trust it blindly —
+          # a rev that doesn't exist upstream would break every default run
+          if ! git ls-remote --exit-code --tags \
+              "https://github.com/${SEGMENT_FLOW_REPO}.git" "refs/tags/${TAG}" >/dev/null; then
+            echo "::error::Tag '${TAG}' does not exist in ${SEGMENT_FLOW_REPO}."
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Patch DEFAULT_NXF_REV
+        id: patch
+        env:
+          TAG: ${{ steps.resolve.outputs.tag }}
+        run: |
+          CURRENT=$(sed -nE 's/^DEFAULT_NXF_REV = "(.*)"$/\1/p' "$NXF_FILE")
+
+          if [ -z "$CURRENT" ]; then
+            echo "::error::Could not find DEFAULT_NXF_REV in ${NXF_FILE}."
+            exit 1
+          fi
+
+          if [ "$CURRENT" = "$TAG" ]; then
+            echo "DEFAULT_NXF_REV is already ${TAG} — nothing to do."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          sed -i -E "s/^DEFAULT_NXF_REV = \".*\"$/DEFAULT_NXF_REV = \"${TAG}\"/" "$NXF_FILE"
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "previous=$CURRENT" >> "$GITHUB_OUTPUT"
+          git diff -- "$NXF_FILE"
+
+      - name: Commit and push branch
+        if: steps.patch.outputs.changed == 'true'
+        id: push
+        env:
+          TAG: ${{ steps.resolve.outputs.tag }}
+        run: |
+          BRANCH="auto/bump-nxf-rev-${TAG}"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git commit -am "chore(nxf): bump DEFAULT_NXF_REV to ${TAG}"
+          git push --force-with-lease origin "$BRANCH"
+
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Open PR
+        if: steps.patch.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.resolve.outputs.tag }}
+          PREVIOUS: ${{ steps.patch.outputs.previous }}
+          BRANCH: ${{ steps.push.outputs.branch }}
+        run: |
+          # Re-runs of the same release reuse the existing PR rather than failing
+          if [ -n "$(gh pr list --head "$BRANCH" --state open --json number -q '.[].number')" ]; then
+            echo "PR for ${BRANCH} is already open."
+            exit 0
+          fi
+
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore(nxf): bump Segment-Flow revision → ${TAG}" \
+            --body "$(cat <<EOF
+          Automated bump triggered by the [${TAG} release](https://github.com/${SEGMENT_FLOW_REPO}/releases/tag/${TAG}) of \`${SEGMENT_FLOW_REPO}\`.
+
+          **Previous revision:** \`${PREVIOUS}\`
+          **New revision:** \`${TAG}\`
+
+          ### What changed
+          \`DEFAULT_NXF_REV\` in \`${NXF_FILE}\` now points at \`${TAG}\`, so default runs (i.e. without \`AIOD_NXF_REPO\`/\`AIOD_NXF_REV\`) pull that revision of Segment-Flow.
+
+          [Compare \`${PREVIOUS}...${TAG}\`](https://github.com/${SEGMENT_FLOW_REPO}/compare/${PREVIOUS}...${TAG})
+
+          ### Checklist before merging
+          - [ ] This codebase is actually compatible with Segment-Flow \`${TAG}\` (params, profiles, \`aiod_utils\`/\`aiod_registry\` pins)
+          - [ ] Profiles in \`src/aiod_napari/nxf_profiles\` are in sync with the new revision
+          - [ ] CI passes on this branch
+          - [ ] A release of this repo is cut afterwards if users need the new revision
+          EOF
+          )" \
+            --label "dependencies" \
+            --label "automated"
