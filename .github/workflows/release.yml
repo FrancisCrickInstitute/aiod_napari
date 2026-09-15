@@ -19,6 +19,26 @@ jobs:
         with:
           fetch-depth: 0       # required for hatch-vcs to read git tags
 
+      # A release that ships a stale DEFAULT_NXF_REV silently runs users against
+      # the wrong pipeline, so block the publish rather than warn about it.
+      # Set repo variable ALLOW_NXF_REV_MISMATCH=true to release against an older revision.
+      - name: Check DEFAULT_NXF_REV is the latest Segment-Flow release
+        if: vars.ALLOW_NXF_REV_MISMATCH != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SEGMENT_FLOW_REPO: FrancisCrickInstitute/Segment-Flow
+        run: |
+          CURRENT=$(sed -nE 's/^DEFAULT_NXF_REV = "(.*)"$/\1/p' src/aiod_napari/inference/nxf.py)
+          LATEST=$(gh release view --repo "$SEGMENT_FLOW_REPO" --json tagName -q .tagName)
+
+          echo "DEFAULT_NXF_REV: ${CURRENT}"
+          echo "Latest ${SEGMENT_FLOW_REPO} release: ${LATEST}"
+
+          if [ "$CURRENT" != "${LATEST#v}" ]; then
+            echo "::error::DEFAULT_NXF_REV is '${CURRENT}' but the latest Segment-Flow release is '${LATEST}'. Bump it (or set ALLOW_NXF_REV_MISMATCH=true if this is deliberate) before releasing."
+            exit 1
+          fi
+
       - name: Install uv
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
 

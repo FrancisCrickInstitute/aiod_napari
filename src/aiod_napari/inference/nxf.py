@@ -53,7 +53,7 @@ from aiod_napari.widget_classes import CollapsibleOptions, SubWidget
 # (i.e. running the GitHub pipeline rather than local one)
 # This should be the tag or commit that this current codebase is developed/tested against
 # NOTE: nf-core convention follows SemVer 2.0.0, i.e. no v prefix, so we follow that
-DEFAULT_NXF_REV = "0.1"
+DEFAULT_NXF_REV = "0.2.0"
 
 
 class NxfWidget(SubWidget):
