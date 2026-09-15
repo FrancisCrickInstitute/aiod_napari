@@ -33,11 +33,15 @@ def segment_flow_mask_name(img_paths, target, run_hash, prep_hash=""):
     ``img_paths`` is the CSV napari hands over (add_image_ids.py fills in the
     image_id column); the return value mirrors getMaskName in main.nf.
     """
+    # Key/lookup by Path rather than str: img_paths are POSIX-style literals,
+    # but target arrives as whatever Path subclass the widget stored (e.g.
+    # WindowsPath, whose str() uses backslashes) - str() would only agree on
+    # POSIX.
     image_ids = {
-        str(p): i.value
+        Path(p): i.value
         for p, i in zip(img_paths, validate_image_ids(img_paths), strict=True)
     }
-    image_id = image_ids[str(target)]
+    image_id = image_ids[Path(target)]
     prep_suffix = f"_{prep_hash}" if prep_hash else ""
     return f"{image_id}{prep_suffix}_masks_{run_hash}"
 
@@ -130,7 +134,7 @@ class TestNapariMatchesSegmentFlow:
         loaded = ["/data/expA/cells.tiff", "/data/expA/cells.png"]
         csv_subset = ["/data/expA/cells.png"]
         records = select_and_build(real_widget, loaded)
-        (record,) = [r for r in records if str(r["img_path"]) == csv_subset[0]]
+        (record,) = [r for r in records if r["img_path"] == Path(csv_subset[0])]
         expected = segment_flow_mask_name(csv_subset, csv_subset[0], RUN_HASH)
         assert (
             real_widget._get_final_mask_name(record["image_id"], record["prep_hash"])
