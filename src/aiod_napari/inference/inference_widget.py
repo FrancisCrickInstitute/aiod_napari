@@ -620,49 +620,41 @@ Run segmentation/inference on selected images using one of the available pre-tra
                     mask_arr, _img_layer_ref, _img_layer_meta
                 )
             _dims_meta = _img_layer_meta.get("dimensions", None)
-            _spatial = frozenset("ZYX")
-            # On first mask for this layer, check if shape matches model output and recreate if not.
-            if not label_layer.visible and label_layer.data.shape != mask_arr.shape:
-                layer_idx = self.viewer.layers.index(label_layer)
-                layer_meta = label_layer.metadata
-                self.viewer.layers.remove(label_layer)
-                label_layer = self.viewer.add_labels(
-                    np.zeros(mask_arr.shape, dtype=np.uint16),
-                    name=mask_layer_name,
-                    visible=False,
-                    opacity=0.5,
-                    metadata=layer_meta,
-                )
-                self.viewer.layers.move(
-                    self.viewer.layers.index(mask_layer_name), layer_idx
-                )
             # Insert mask data using the correct per-axis index tuple so that
             # non-spatial singleton dims are addressed with slice(None).
-            if label_layer.data.shape == mask_arr.shape:
-                if (
-                    _dims_meta is not None
-                    and hasattr(_dims_meta, "order")
-                    and label_layer.ndim == len(_dims_meta.order)
-                ):
-                    idx = tuple(
-                        slice(start_z, end_z)
-                        if d == "Z"
-                        else slice(start_y, end_y)
-                        if d == "Y"
-                        else slice(start_x, end_x)
-                        if d == "X"
-                        else slice(None)
-                        for d in _dims_meta.order
-                    )
-                elif label_layer.ndim >= 3:
-                    idx = (
-                        slice(start_z, end_z),
-                        slice(start_y, end_y),
-                        slice(start_x, end_x),
-                    )
-                else:
-                    idx = (slice(start_y, end_y), slice(start_x, end_x))
+            if (
+                _dims_meta is not None
+                and hasattr(_dims_meta, "order")
+                and label_layer.ndim == len(_dims_meta.order)
+            ):
+                idx = tuple(
+                    slice(start_z, end_z)
+                    if c == "Z"
+                    else slice(start_y, end_y)
+                    if c == "Y"
+                    else slice(start_x, end_x)
+                    if c == "X"
+                    else slice(None)
+                    for c in _dims_meta.order
+                )
+            elif label_layer.ndim >= 3:
+                idx = (
+                    slice(start_z, end_z),
+                    slice(start_y, end_y),
+                    slice(start_x, end_x),
+                )
+            else:
+                idx = (slice(start_y, end_y), slice(start_x, end_x))
+            # Insert the substack into the established slice region (idx)
+            if label_layer.data[idx].shape == mask_arr.shape:
                 label_layer.data[idx] = mask_arr
+            # On a mismatch, we just skip the preview as insert_final_masks should fix all
+            else:
+                print(
+                    f"Mask {Path(f).name} has shape {mask_arr.shape}, but "
+                    f"{label_layer.data[idx].shape} was expected at its substack "
+                    "indices. Skipping preview for it."
+                )
             label_layer.visible = True
             # Apply scale for downsampled masks, accounting for pixel size scaling if present
             downsample_factor = label_layer.metadata.get("downsample_factor", None)
