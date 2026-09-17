@@ -449,10 +449,12 @@ Run segmentation/inference on selected images using one of the available pre-tra
                         yield new_files
                 # Sleep until next check
                 time.sleep(2)
-                # If we have as many slices as the total, we are done
+                # If we have as many slices as the total, we are done.
+                # NOTE: >= not ==, so a total that is still the pre-run estimate
+                # cannot leave the watcher polling forever by being overshot
                 if (
                     sum(self.subwidgets["nxf"].progress_dict.values())
-                    == self.subwidgets["nxf"].total_substacks
+                    >= self.subwidgets["nxf"].total_substacks
                 ):
                     print("Deactivating watcher...")
                     self.watcher_enabled = False
