@@ -229,6 +229,70 @@ class TestUpdateMasksSubstacks:
         assert not viewer.layers[layer_name].data.any()
 
 
+class TestSubstackCount:
+    """
+    The pre-run job count is only an estimate - Segment-Flow caps substacks
+    using config (model_max_substack, substack_scale, memory_per_job) that the
+    plugin cannot see, so the same image can split differently there.
+    refresh_substack_total swaps in the count the pipeline publishes.
+    """
+
+    ESTIMATE = 3
+
+    def _nxf(self, inference_widget_minimal, contents):
+        viewer, widget, tmp_path = inference_widget_minimal
+        nxf = widget.subwidgets["nxf"]
+        nxf.total_substacks = self.ESTIMATE
+        nxf.init_progress_bar()
+        splits = tmp_path / "splits" / "substacks_abc.csv"
+        splits.parent.mkdir(parents=True)
+        splits.write_text(contents)
+        nxf.splits_csv_path = splits
+        return nxf
+
+    def test_published_count_replaces_the_estimate(self, inference_widget_minimal):
+        rows = "image_id,stack_idx\n" + "".join(f"vol,{i}\n" for i in range(4))
+        nxf = self._nxf(inference_widget_minimal, rows)
+
+        assert nxf.refresh_substack_total() is True
+        assert nxf.total_substacks == 4
+        assert nxf.substacks_exact
+        # The bar has to be re-ranged, or progress past the estimate is clamped
+        assert nxf.pbar.maximum() == 4
+        assert nxf.tqdm_pbar.total == 4
+
+    def test_estimate_stands_until_the_file_appears(self, inference_widget_minimal):
+        nxf = self._nxf(inference_widget_minimal, "image_id,stack_idx\nvol,0\n")
+        nxf.splits_csv_path = nxf.splits_csv_path.with_name("not_yet.csv")
+
+        assert nxf.refresh_substack_total() is False
+        assert nxf.total_substacks == self.ESTIMATE
+        assert not nxf.substacks_exact
+
+    def test_header_only_file_is_not_trusted(self, inference_widget_minimal):
+        # publishDir copies rather than renames, so the file can be read mid-copy
+        nxf = self._nxf(inference_widget_minimal, "image_id,stack_idx\n")
+
+        assert nxf.refresh_substack_total() is False
+        assert nxf.total_substacks == self.ESTIMATE
+
+    def test_estimate_is_only_flagged_when_progress_runs_against_it(
+        self, inference_widget_minimal
+    ):
+        rows = "image_id,stack_idx\n" + "".join(f"vol,{i}\n" for i in range(4))
+        nxf = self._nxf(inference_widget_minimal, rows)
+
+        # An empty bar shows nothing worth qualifying, which is the normal case:
+        # the count is published before the first mask, so it is exact by the
+        # time anything is drawn
+        assert "est." not in nxf._progress_prefix(0)
+        # Only a bar advancing against an unverified total needs the caveat
+        assert "est." in nxf._progress_prefix(1)
+
+        nxf.refresh_substack_total()
+        assert "est." not in nxf._progress_prefix(1)
+
+
 class TestSelectedLayerPreprocessDisplay:
     """PreprocessWidget's selected-layer preprocessing text box reads
     layer.metadata["preprocess_str"] directly - no re-deriving/re-hashing.

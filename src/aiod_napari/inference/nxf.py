@@ -1,3 +1,4 @@
+import csv
 import re
 import shlex
 import shutil
@@ -111,6 +112,11 @@ The profile determines where the pipeline is run.
         self.progress_dict: dict[ImageId, int] = {}
         # Total number of substacks; set properly by setup_inference()
         self.total_substacks = 0
+        # If total_substacks is Segment-Flow's count rather than our pre-run estimate
+        self.substacks_exact = False
+        # Where Segment-Flow publishes this run's substack rows
+        # Needs run_hash
+        self.splits_csv_path: Path | None = None
 
         self.nxf_cmd = None
         self.nxf_params = None
@@ -471,7 +477,12 @@ Number of tiles to split the image into in the Z dimension. 'auto' allows Nextfl
 
         self.tile_size_label = QLabel("No image layers found!")
         self.tile_size_label.setToolTip(
-            "Tile size based on currently selected image and tile settings above."
+            format_tooltip(
+                """
+Substack size based on currently selected image and settings. Note
+that this is an estimate until we get the accurate count from Segment-Flow.
+            """
+            )
         )
         self.advanced_layout.addWidget(self.tile_size_label, 6, 0, 1, 2)
 
@@ -628,8 +639,11 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
             index=False,
         )
         # Store the total number of jobs
-        # NOTE: Used as an estimate to info the user of how many jobs will be submitted
+        # NOTE: This is an estimate, as Segment-Flow will do some memory calcs
+        # based on input params, profile etc. which cannot all be known here
+        # Later, refresh_substack_total() will take info from Segment-Flow and update this
         self.total_substacks = total_substacks
+        self.substacks_exact = False
 
     def check_inference(self):
         """
@@ -822,6 +836,10 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         nxf_params["postprocess"] = self.postprocess_btn.isChecked()
         # Add the Nextflow parameter hash to the command
         nxf_params["param_hash"] = self.parent.run_hash
+        # Segment-Flow publishes this run's substack rows here, under the same hash
+        self.splits_csv_path = (
+            self.nxf_store_dir / "splits" / f"substacks_{self.parent.run_hash}.csv"
+        )
         # Save the Nextflow parameters to a YAML file
         nxf_params_fpath = self.nxf_store_dir / f"nxf_params_{self.parent.run_hash}.yml"
         with open(nxf_params_fpath, "w") as f:
@@ -948,7 +966,42 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         # Reset the label
         self.pbar_label.setText("Progress: [--:--]")
 
+    def _progress_prefix(self, curr_substacks: int = 0) -> str:
+        # Add estimate in the edge-case that we don't read Segment-Flow's CSV
+        if self.substacks_exact or curr_substacks == 0:
+            return "Progress"
+        return "Progress (est.)"
+
+    def refresh_substack_total(self) -> bool:
+        """
+        Replace the estimated job count with Segment-Flow's own (if published).
+        """
+        if self.substacks_exact or self.splits_csv_path is None:
+            return self.substacks_exact
+        if not self.splits_csv_path.is_file():
+            return False
+        try:
+            with open(self.splits_csv_path, newline="") as f:
+                num_substacks = sum(1 for _ in csv.DictReader(f))
+        except OSError as e:
+            # publishDir copies rather than renames, so catching the file
+            # half-written could happen; the next call picks it up
+            print(f"Could not yet read substack counts, will retry: {e}")
+            return False
+        # A header-only file is another way to catch a copy in progress
+        if num_substacks == 0:
+            return False
+        self.total_substacks = num_substacks
+        self.substacks_exact = True
+        self.pbar.setRange(0, self.total_substacks)
+        self.tqdm_pbar.total = self.total_substacks
+        self.tqdm_pbar.refresh()
+        return True
+
     def update_progress_bar(self):
+        # The pipeline publishes its substack count before models are run
+        # so by the first call here we can give an exact count
+        self.refresh_substack_total()
         # Update the progress bar to the current number of slices
         curr_slices = sum(self.progress_dict.values())
         self.pbar.setValue(curr_slices)
@@ -962,7 +1015,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         )
         remaining = (self.tqdm_pbar.total - self.tqdm_pbar.n) / rate
         self.pbar_label.setText(
-            f"Progress: [{self.tqdm_pbar.format_interval(elapsed)}<{self.tqdm_pbar.format_interval(remaining)}]"
+            f"{self._progress_prefix(curr_slices)}: [{self.tqdm_pbar.format_interval(elapsed)}<{self.tqdm_pbar.format_interval(remaining)}]"
         )
 
     def reset_progress_bar(self):
@@ -1031,7 +1084,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
         # Otherwise just take the first one
         H, W, num_slices, channels = get_img_dims(layers[0], verbose=False)
         img_shape = Stack(height=H, width=W, depth=num_slices, channels=channels)
-        # Get the actual stack size
+        # Get the estimated stack size (as previous, cannot fully know here)
         num_substacks, eff_shape = calc_num_stacks(
             image_shape=img_shape,
             req_stacks=stack_size,
@@ -1047,7 +1100,7 @@ Threshold for the Intersection over Union (IoU) metric used in the SAM post-proc
 
         self.tile_size_label.setText(
             format_tooltip(
-                f"Substack size: {stack_size_px.depth} slice{'s' if stack_size_px.depth > 1 else ''}, {stack_size_px.height}px x {stack_size_px.width}px for each of the {num_substacks} jobs to submit (for the selected image).",
+                f"Estimated substack size: {stack_size_px.depth} slice{'s' if stack_size_px.depth > 1 else ''}, {stack_size_px.height}px x {stack_size_px.width}px, giving ~{num_substacks} jobs (for the selected image).",
                 width=40,
             )
         )
