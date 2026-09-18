@@ -1,0 +1,67 @@
+name: Bug report
+description: Something in the Napari plugin does not work as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please check
+        [Troubleshooting](https://franciscrickinstitute.github.io/aiod_docs/sections/support/troubleshooting/)
+        first — it covers the most common failures at each stage of a run.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect to happen, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: The sequence of actions in the plugin that led to the problem.
+      placeholder: |
+        1. Open the Inference widget
+        2. Select ...
+        3. Click Run
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: aiod_napari version
+      description: "From the Napari plugin manager, or `uv pip show aiod-napari`."
+    validations:
+      required: true
+  - type: input
+    id: napari-version
+    attributes:
+      label: Napari version and OS
+      placeholder: "napari 0.6.x, macOS 15 / Windows 11 / Ubuntu 24.04"
+    validations:
+      required: true
+  - type: dropdown
+    id: profile
+    attributes:
+      label: Where was the pipeline running?
+      options:
+        - Local
+        - HPC (Crick / NEMO)
+        - HPC (other)
+        - Not applicable — failed before running
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model, version and task
+      description: If the problem involves a specific model.
+      placeholder: "Cellpose / cyto3 / cyto"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and error output
+      description: |
+        The Napari error console, and the Nextflow log (`.nextflow.log` in the cache
+        directory) if the run started. This is automatically formatted as code.
+      render: shell

@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Troubleshooting guide
+    url: https://franciscrickinstitute.github.io/aiod_docs/sections/support/troubleshooting/
+    about: Common failures and their fixes — please check here first.
+  - name: AIoD documentation
+    url: https://franciscrickinstitute.github.io/aiod_docs/
+    about: Full documentation for the plugin, pipeline and model registry.
+  - name: Request a new model
+    url: https://github.com/FrancisCrickInstitute/aiod_registry/issues/new/choose
+    about: Models live in the aiod_registry repository, not here.
